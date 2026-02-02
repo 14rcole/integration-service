@@ -67,6 +67,7 @@ const (
 	GetComponentsFromSnapshotForPRGroupKey
 	GetGroupSnapshotsKey
 	ResolutionRequestContextKey
+	ComponentGroupsContextKey
 )
 
 func NewMockLoader() ObjectLoader {
@@ -131,6 +132,15 @@ func (l *mockLoader) GetApplicationFromComponent(ctx context.Context, c client.C
 		return l.loader.GetApplicationFromComponent(ctx, c, component)
 	}
 	return toolkit.GetMockedResourceAndErrorFromContext(ctx, ApplicationContextKey, &applicationapiv1alpha1.Application{})
+}
+
+// GetComponentGroupsForComponentVersion returns the r esource and error passed as values of the context
+func (l *mockLoader) GetComponentGroupsForComponentVersion(ctx context.Context, c client.Client, component *applicationapiv1alpha1.Component, version string) (*[]v1beta2.ComponentGroup, error) {
+	if ctx.Value(ComponentGroupsContextKey) == nil {
+		return l.loader.GetComponentGroupsForComponentVersion(ctx, c, component, version)
+	}
+	cg, err := toolkit.GetMockedResourceAndErrorFromContext(ctx, ComponentGroupsContextKey, &v1beta2.ComponentGroup{})
+	return &[]v1beta2.ComponentGroup{*cg}, err
 }
 
 // GetSnapshotFromPipelineRun returns the resource and error passed as values of the context.

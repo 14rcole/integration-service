@@ -48,6 +48,7 @@ type ObjectLoader interface {
 	GetComponentFromPipelineRun(ctx context.Context, c client.Client, pipelineRun *tektonv1.PipelineRun) (*applicationapiv1alpha1.Component, error)
 	GetApplicationFromPipelineRun(ctx context.Context, c client.Client, pipelineRun *tektonv1.PipelineRun) (*applicationapiv1alpha1.Application, error)
 	GetApplicationFromComponent(ctx context.Context, c client.Client, component *applicationapiv1alpha1.Component) (*applicationapiv1alpha1.Application, error)
+	GetComponentGroupsForComponentVersion(ctx context.Context, c client.Client, component *applicationapiv1alpha1.Component, version string) (*[]v1beta2.ComponentGroup, error)
 	GetSnapshotFromPipelineRun(ctx context.Context, c client.Client, pipelineRun *tektonv1.PipelineRun) (*applicationapiv1alpha1.Snapshot, error)
 	GetAllIntegrationTestScenariosForApplication(ctx context.Context, c client.Client, application *applicationapiv1alpha1.Application) (*[]v1beta2.IntegrationTestScenario, error)
 	GetAllIntegrationTestScenariosForComponentGroup(ctx context.Context, c client.Client, componentGroup *v1beta2.ComponentGroup) (*[]v1beta2.IntegrationTestScenario, error)
@@ -194,6 +195,41 @@ func (l *loader) GetApplicationFromComponent(ctx context.Context, c client.Clien
 	}
 
 	return application, nil
+}
+
+// GetComponentGroupsForComponentVersion loads from the cluster a list of ComponentGroups that use the given ComponentVerison. If
+// the Component does not belong to any ComponentGroups then an empty list will be returned.  If the Component is not found on the
+// cluster, an error will be returned
+func (l *loader) GetComponentGroupsForComponentVersion(ctx context.Context, c client.Client, component *applicationapiv1alpha1.Component, version string) (*[]v1beta2.ComponentGroup, error) {
+	componentGroupList := &v1beta2.ComponentGroupList{}
+
+	// Kubernetes FieldSelector cannot filter by "spec.components contains item where name=X and componentBranch.name=Y"
+	// (only top-level or CRD selectableFields are supported, not array containment). List all in namespace and filter in Go.
+	options := &client.ListOptions{
+		Namespace: component.Namespace,
+	}
+
+	err := c.List(ctx, componentGroupList, options)
+	if err != nil {
+		return nil, err
+	}
+
+	// Fields inside of arrays are not selectable, so we need to filter in code. This means we will be querying etcd for large
+	// amounts of data every time a build pipeline completes.  If this becomes a performance issue we can implement an annotation
+	// that contains a list of all components in the ComponentGroup. Then we just have to filter the (smaller) list of
+	// ComponentGroups for matching versions.
+	var result []v1beta2.ComponentGroup
+	for i := range componentGroupList.Items {
+		cg := &componentGroupList.Items[i]
+		for j := range cg.Spec.Components {
+			ref := &cg.Spec.Components[j]
+			if ref.Name == component.Name && ref.ComponentBranch.Name == version {
+				result = append(result, *cg)
+				break
+			}
+		}
+	}
+	return &result, nil
 }
 
 // GetSnapshotFromPipelineRun loads from the cluster the Snapshot referenced in the given PipelineRun.

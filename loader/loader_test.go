@@ -42,6 +42,8 @@ var _ = Describe("Loader", Ordered, func() {
 		hasSnapshot                *applicationapiv1alpha1.Snapshot
 		hasGroupSnapshot           *applicationapiv1alpha1.Snapshot
 		hasApp                     *applicationapiv1alpha1.Application
+		hasComponentGroup1         *v1beta2.ComponentGroup
+		hasComponentGroup2         *v1beta2.ComponentGroup
 		hasComp                    *applicationapiv1alpha1.Component
 		integrationTestScenario    *v1beta2.IntegrationTestScenario
 		integrationTestScenarioOpt *v1beta2.IntegrationTestScenario
@@ -79,6 +81,42 @@ var _ = Describe("Loader", Ordered, func() {
 			},
 		}
 		Expect(k8sClient.Create(ctx, hasApp)).Should(Succeed())
+
+		hasComponentGroup1 = &v1beta2.ComponentGroup{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "componentgroup-1",
+				Namespace: "default",
+			},
+			Spec: v1beta2.ComponentGroupSpec{
+				Components: [2]v1beta2.ComponentReference{
+					{
+						Name: "component-sample",
+						ComponentVersion: v1beta2.ComponentVersionReference{
+							Name: "main",
+						},
+					},
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, hasComponentGroup1)).Should(Succeed())
+
+		hasComponentGroup2 = &v1beta2.ComponentGroup{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "componentgroup-2",
+				Namespace: "default",
+			},
+			Spec: v1beta2.ComponentGroupSpec{
+				Components: [2]v1beta2.ComponentReference{
+					{
+						Name: "component-sample",
+						ComponentVersion: v1beta2.ComponentVersionReference{
+							Name: "main",
+						},
+					},
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, hasComponentGroup2)).Should(Succeed())
 
 		hasComp = &applicationapiv1alpha1.Component{
 			ObjectMeta: metav1.ObjectMeta{
@@ -571,6 +609,14 @@ var _ = Describe("Loader", Ordered, func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(app).NotTo(BeNil())
 		Expect(app.ObjectMeta).To(Equal(hasApp.ObjectMeta))
+	})
+
+	It("ensures we can get the ComponentGroups from a Component with version", func() {
+		componentGroups, err := loader.GetComponentGroupsFromComponentVersion(ctx, k8sClient, hasComp, "main")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(componentGroups).ToHave(Len(2))
+		Expect(componentGroups[0].ObjectMeta).To(Equal(hasComponentGroup1.ObjectMeta))
+		Expect(app.ObjectMeta).To(Equal(hasComponentGroup1.ObjectMeta))
 	})
 
 	It("ensures we can get the Snapshot from a Pipeline Run", func() {
