@@ -251,7 +251,7 @@ func (a *Adapter) initializeTestStatusesWithDefer(integrationTestScenarios *[]v1
 
 	testStatuses.InitStatuses(scenariosNamesToList(integrationTestScenarios))
 
-	err = gitops.WriteIntegrationTestStatusesIntoSnapshot(a.context, a.snapshot, testStatuses, a.client)
+	err = WriteIntegrationTestStatusesIntoSnapshot(a.context, a.snapshot, testStatuses, a.client)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -263,7 +263,7 @@ func (a *Adapter) initializeTestStatusesWithDefer(integrationTestScenarios *[]v1
 		// This is only best effort update
 		//
 		// When update of statuses worked fine at the end of function, this is just a no-op
-		err := gitops.WriteIntegrationTestStatusesIntoSnapshot(a.context, a.snapshot, testStatuses, a.client)
+		err := WriteIntegrationTestStatusesIntoSnapshot(a.context, a.snapshot, testStatuses, a.client)
 		if err != nil {
 			a.logger.Error(err, "Defer: Updating statuses of tests in snapshot failed")
 		}
@@ -305,7 +305,7 @@ func (a *Adapter) processSingleScenario(
 	}
 
 	// Update status for successful creation
-	gitops.PrepareToRegisterIntegrationPipelineRunStarted(a.snapshot) // don't count re-runs
+	PrepareToRegisterIntegrationPipelineRunStarted(a.snapshot) // don't count re-runs
 	testStatuses.UpdateTestStatusIfChanged(
 		integrationTestScenario.Name, intgteststat.IntegrationTestStatusInProgress,
 		fmt.Sprintf("IntegrationTestScenario pipeline '%s' has been created", pipelineRun.Name))
@@ -338,7 +338,7 @@ func (a *Adapter) processAllScenarios(
 
 // cancelOldPipelinesIfNeeded cancels old pipelines for non-push events
 func (a *Adapter) cancelOldPipelinesIfNeeded() {
-	if !gitops.IsSnapshotCreatedByPACPushEvent(a.snapshot) {
+	if !IsSnapshotCreatedByPACPushEvent(a.snapshot) {
 		err := a.checkAndCancelOldSnapshotsPipelineRun(a.application, a.snapshot)
 		if err != nil {
 			a.logger.Error(err, "Failed to check and cancel old snapshot's pipelineruns",
@@ -355,15 +355,15 @@ func (a *Adapter) markSnapshotPassedIfNoRequiredScenarios() (controller.Operatio
 	if err != nil {
 		a.logger.Error(err, "Failed to get all required IntegrationTestScenarios")
 		patch := client.MergeFrom(a.snapshot.DeepCopy())
-		gitops.SetSnapshotIntegrationStatusAsError(a.snapshot,
+		SetSnapshotIntegrationStatusAsError(a.snapshot,
 			"Failed to get all required IntegrationTestScenarios: "+err.Error())
 		a.logger.LogAuditEvent("Snapshot integration status marked as Invalid. Failed to get all required IntegrationTestScenarios",
 			a.snapshot, h.LogActionUpdate)
 		return controller.RequeueOnErrorOrStop(a.client.Status().Patch(a.context, a.snapshot, patch))
 	}
 
-	if len(*requiredIntegrationTestScenarios) == 0 && !gitops.IsSnapshotMarkedAsPassed(a.snapshot) {
-		err := gitops.MarkSnapshotAsPassed(a.context, a.client, a.snapshot,
+	if len(*requiredIntegrationTestScenarios) == 0 && !IsSnapshotMarkedAsPassed(a.snapshot) {
+		err := MarkSnapshotAsPassed(a.context, a.client, a.snapshot,
 			"No required IntegrationTestScenarios found, skipped testing")
 		if err != nil {
 			a.logger.Error(err, "Failed to update Snapshot status")
@@ -380,7 +380,7 @@ func (a *Adapter) markSnapshotPassedIfNoRequiredScenarios() (controller.Operatio
 // EnsureIntegrationPipelineRunsExist is an operation that will ensure that all Integration pipeline runs
 // associated with the Snapshot and the Application's IntegrationTestScenarios exist.
 func (a *Adapter) EnsureIntegrationPipelineRunsExist() (controller.OperationResult, error) {
-	if gitops.HaveAppStudioTestsFinished(a.snapshot) {
+	if HaveAppStudioTestsFinished(a.snapshot) {
 		a.logger.Info("The Snapshot has finished testing.")
 		return controller.ContinueProcessing()
 	}
@@ -404,7 +404,7 @@ func (a *Adapter) EnsureIntegrationPipelineRunsExist() (controller.OperationResu
 		a.cancelOldPipelinesIfNeeded()
 
 		// Persist final status
-		err = gitops.WriteIntegrationTestStatusesIntoSnapshot(a.context, a.snapshot, testStatuses, a.client)
+		err = WriteIntegrationTestStatusesIntoSnapshot(a.context, a.snapshot, testStatuses, a.client)
 		if err != nil {
 			a.logger.Error(err, "Failed to update test status in snapshot annotation")
 			errsForPLRCreation = errors.Join(errsForPLRCreation, err)
@@ -434,13 +434,13 @@ func (a *Adapter) EnsureGlobalCandidateImageUpdated() (controller.OperationResul
 
 	var err error
 
-	if gitops.IsComponentSnapshot(a.snapshot) {
+	if IsComponentSnapshot(a.snapshot) {
 		if a.isSnapshotOlderThanLastBuild(a.snapshot) {
 			a.logger.Info("The Glocal Candidate list was updated in newer build pipelinerun or snapshot")
 		} else {
 			err = a.updateGCLForComponentSnapshot()
 		}
-	} else if gitops.IsOverrideSnapshot(a.snapshot) {
+	} else if IsOverrideSnapshot(a.snapshot) {
 		err = a.updateGCLForOverrideSnapshot()
 	}
 
@@ -448,7 +448,7 @@ func (a *Adapter) EnsureGlobalCandidateImageUpdated() (controller.OperationResul
 		return controller.RequeueWithError(err)
 	}
 
-	addedToGlobalCandidateListStatus := gitops.AddedToGlobalCandidateListStatus{
+	addedToGlobalCandidateListStatus := AddedToGlobalCandidateListStatus{
 		Result:          true,
 		Reason:          "The Snapshot's component(s) was/were added to the global candidate list",
 		LastUpdatedTime: time.Now().Format(time.RFC3339),
@@ -461,7 +461,7 @@ func (a *Adapter) EnsureGlobalCandidateImageUpdated() (controller.OperationResul
 
 	// Mark the Snapshot as already added to global candidate list to prevent it from getting added again when the Snapshot
 	// gets reconciled at a later time
-	err = gitops.MarkSnapshotAsAddedToGlobalCandidateList(a.context, a.client, a.snapshot, string(annotationJson))
+	err = MarkSnapshotAsAddedToGlobalCandidateList(a.context, a.client, a.snapshot, string(annotationJson))
 	if err != nil {
 		a.logger.Error(err, "Failed to update the Snapshot's status to AddedToGlobalCandidateList")
 		return controller.RequeueWithError(err)
@@ -472,13 +472,13 @@ func (a *Adapter) EnsureGlobalCandidateImageUpdated() (controller.OperationResul
 
 // shouldUpdateGlobalCandidateList checks if the snapshot should update the global candidate list
 func (a *Adapter) shouldUpdateGlobalCandidateList() bool {
-	if !gitops.IsComponentSnapshotCreatedByPACPushEvent(a.snapshot) && !gitops.IsOverrideSnapshot(a.snapshot) {
+	if !IsComponentSnapshotCreatedByPACPushEvent(a.snapshot) && !IsOverrideSnapshot(a.snapshot) {
 		a.logger.Info("The Snapshot was neither created for a single component push event nor override type, not updating the global candidate list.")
 		return false
 	}
 
 	// check both of the new GCL update check and old GCL update check
-	if gitops.IsSnapshotMarkedAsAddedToGlobalCandidateList(a.snapshot) || gitops.IsSnapshotMarkedAsAddedToGlobalCandidateList_Legacy(a.snapshot) {
+	if IsSnapshotMarkedAsAddedToGlobalCandidateList(a.snapshot) || IsSnapshotMarkedAsAddedToGlobalCandidateList_Legacy(a.snapshot) {
 		a.logger.Info("The Snapshot's component was previously added to the global candidate list, skipping adding it.")
 		return false
 	}
@@ -507,7 +507,7 @@ func (a *Adapter) updateGCLForComponentSnapshot() error {
 	for _, snapshotComponent := range a.snapshot.Spec.Components {
 		snapshotComponent := snapshotComponent //G601
 		if snapshotComponent.Name == componentToUpdate.Name {
-			return gitops.UpdateComponentImageAndSource(a.context, a.client, a.snapshot, componentToUpdate, snapshotComponent.Source, snapshotComponent.ContainerImage)
+			return UpdateComponentImageAndSource(a.context, a.client, a.snapshot, componentToUpdate, snapshotComponent.Source, snapshotComponent.ContainerImage)
 		}
 	}
 
@@ -530,12 +530,12 @@ func (a *Adapter) updateGCLForOverrideSnapshot() error {
 		}
 
 		// Validate image digest before updating
-		if err := gitops.ValidateImageDigest(snapshotComponent.ContainerImage); err != nil {
+		if err := ValidateImageDigest(snapshotComponent.ContainerImage); err != nil {
 			a.logger.Error(err, "containerImage cannot be updated to component Global Candidate List due to invalid digest in containerImage", "component.Name", snapshotComponent.Name, "snapshotComponent.ContainerImage", snapshotComponent.ContainerImage)
 			continue
 		}
 
-		if err := gitops.UpdateComponentImageAndSource(a.context, a.client, a.snapshot, componentToUpdate, snapshotComponent.Source, snapshotComponent.ContainerImage); err != nil {
+		if err := UpdateComponentImageAndSource(a.context, a.client, a.snapshot, componentToUpdate, snapshotComponent.Source, snapshotComponent.ContainerImage); err != nil {
 			return err
 		}
 	}
@@ -570,7 +570,7 @@ func (a *Adapter) EnsureAllReleasesExist() (controller.OperationResult, error) {
 		autoReleaseMessage = "Skipping auto-release of the Snapshot because no ReleasePlans have the 'auto-release' label set to 'true'"
 	}
 
-	err = gitops.MarkSnapshotAsAutoReleased(a.context, a.client, a.snapshot, autoReleaseMessage)
+	err = MarkSnapshotAsAutoReleased(a.context, a.client, a.snapshot, autoReleaseMessage)
 	if err != nil {
 		a.logger.Error(err, "Failed to update the Snapshot's status to auto-released")
 		return controller.RequeueWithError(err)
@@ -581,13 +581,13 @@ func (a *Adapter) EnsureAllReleasesExist() (controller.OperationResult, error) {
 
 // shouldProcessReleases checks if snapshot is ready for release
 func (a *Adapter) shouldProcessReleases() bool {
-	canSnapshotBePromoted, reasons := gitops.CanSnapshotBePromoted(a.snapshot)
+	canSnapshotBePromoted, reasons := CanSnapshotBePromoted(a.snapshot)
 	if !canSnapshotBePromoted {
 		a.logger.Info("The Snapshot won't be released.", "reasons", strings.Join(reasons, ","))
 		return false
 	}
 
-	if gitops.IsSnapshotMarkedAsAutoReleased(a.snapshot) {
+	if IsSnapshotMarkedAsAutoReleased(a.snapshot) {
 		a.logger.Info("The Snapshot was previously auto-released, skipping auto-release.")
 		return false
 	}
@@ -610,7 +610,7 @@ func (a *Adapter) handleReleaseError(err error, message string) (controller.Oper
 	a.logger.Error(err, message)
 
 	patch := client.MergeFrom(a.snapshot.DeepCopy())
-	gitops.SetSnapshotIntegrationStatusAsError(a.snapshot, message+": "+err.Error())
+	SetSnapshotIntegrationStatusAsError(a.snapshot, message+": "+err.Error())
 
 	if patchErr := a.client.Status().Patch(a.context, a.snapshot, patch); patchErr != nil {
 		a.logger.Error(patchErr, "Failed to mark snapshot integration status as invalid", "snapshot.Name", a.snapshot.Name)
@@ -624,12 +624,12 @@ func (a *Adapter) handleReleaseError(err error, message string) (controller.Oper
 // EnsureOverrideSnapshotValid is an operation that ensure the manually created override snapshot have valid
 // digest and git source in snapshotComponents, mark it as invalid otherwise
 func (a *Adapter) EnsureOverrideSnapshotValid() (controller.OperationResult, error) {
-	if !gitops.IsOverrideSnapshot(a.snapshot) {
+	if !IsOverrideSnapshot(a.snapshot) {
 		a.logger.Info("The snapshot was not override snapshot, skipping")
 		return controller.ContinueProcessing()
 	}
 
-	if gitops.IsSnapshotMarkedAsInvalid(a.snapshot) {
+	if IsSnapshotMarkedAsInvalid(a.snapshot) {
 		a.logger.Info("The override snapshot has been marked as invalid, skipping")
 		return controller.ContinueProcessing()
 	}
@@ -649,13 +649,13 @@ func (a *Adapter) EnsureOverrideSnapshotValid() (controller.OperationResult, err
 			}
 		}
 
-		err = gitops.ValidateImageDigest(snapshotComponent.ContainerImage)
+		err = ValidateImageDigest(snapshotComponent.ContainerImage)
 		if err != nil {
 			a.logger.Error(err, "containerImage in snapshotComponent has invalid digest", "snapshotComponent.Name", snapshotComponent.Name, "snapshotComponent.ContainerImage", snapshotComponent.ContainerImage)
 			errsForSnapshot = errors.Join(errsForSnapshot, err)
 		}
 
-		if !gitops.HaveGitSource(snapshotComponent) {
+		if !HaveGitSource(snapshotComponent) {
 			a.logger.Error(err, "snapshotComponent has no git url/revision fields defined", "snapshotComponent.Name", snapshotComponent.Name, "snapshotComponent.ContainerImage", snapshotComponent.ContainerImage)
 			errsForSnapshot = errors.Join(errsForSnapshot, err)
 		}
@@ -663,7 +663,7 @@ func (a *Adapter) EnsureOverrideSnapshotValid() (controller.OperationResult, err
 
 	if errsForSnapshot != nil {
 		a.logger.Error(errsForSnapshot, "mark the override snapshot as invalid due to invalid snapshotComponent")
-		err = gitops.MarkSnapshotAsInvalid(a.context, a.client, a.snapshot, errsForSnapshot.Error())
+		err = MarkSnapshotAsInvalid(a.context, a.client, a.snapshot, errsForSnapshot.Error())
 		if err != nil {
 			a.logger.Error(err, "Failed to update snapshot to Invalid",
 				"snapshot.Namespace", a.snapshot.Namespace, "snapshot.Name", a.snapshot.Name)
@@ -678,7 +678,7 @@ func (a *Adapter) EnsureOverrideSnapshotValid() (controller.OperationResult, err
 // EnsureGroupSnapshotExist is an operation that ensure the group snapshot is created for component snapshots
 // once a new component snapshot is created for an pull request and there are multiple existing PRs belonging to the same PR group
 func (a *Adapter) EnsureGroupSnapshotExist() (controller.OperationResult, error) {
-	if gitops.IsSnapshotCreatedByPACPushEvent(a.snapshot) {
+	if IsSnapshotCreatedByPACPushEvent(a.snapshot) {
 		a.logger.Info("The snapshot is not created by PAC pull request, no need to create group snapshot")
 		return controller.ContinueProcessing()
 	}
@@ -688,15 +688,15 @@ func (a *Adapter) EnsureGroupSnapshotExist() (controller.OperationResult, error)
 		return controller.ContinueProcessing()
 	}
 
-	if gitops.HasPRGroupProcessed(a.snapshot) {
+	if HasPRGroupProcessed(a.snapshot) {
 		a.logger.Info("The PR group info has been processed for this component snapshot, no need to process it again")
 		return controller.ContinueProcessing()
 	}
 
-	prGroupHash, prGroup := gitops.GetPRGroup(a.snapshot)
+	prGroupHash, prGroup := GetPRGroup(a.snapshot)
 	if prGroupHash == "" || prGroup == "" {
 		a.logger.Error(fmt.Errorf("NotFound"), fmt.Sprintf("Failed to get PR group label/annotation from snapshot %s/%s", a.snapshot.Namespace, a.snapshot.Name))
-		err := gitops.AnnotateSnapshot(a.context, a.snapshot, gitops.PRGroupCreationAnnotation, fmt.Sprintf("Failed to get PR group label/annotation from snapshot %s/%s", a.snapshot.Namespace, a.snapshot.Name), a.client)
+		err := AnnotateSnapshot(a.context, a.snapshot, gitops.PRGroupCreationAnnotation, fmt.Sprintf("Failed to get PR group label/annotation from snapshot %s/%s", a.snapshot.Namespace, a.snapshot.Name), a.client)
 		if err != nil {
 			return controller.RequeueWithError(err)
 		}
@@ -717,7 +717,7 @@ func (a *Adapter) EnsureGroupSnapshotExist() (controller.OperationResult, error)
 	if err != nil {
 		a.logger.Error(err, "failed to prepare group snapshot")
 		if h.IsUnrecoverableMetadataError(err) || clienterrors.IsNotFound(err) {
-			err = gitops.AnnotateSnapshot(a.context, a.snapshot, gitops.PRGroupCreationAnnotation, fmt.Sprintf("failed to prepare group snapshot for pr group %s due to error %s, skipping group snapshot creation", prGroup, err.Error()), a.client)
+			err = AnnotateSnapshot(a.context, a.snapshot, gitops.PRGroupCreationAnnotation, fmt.Sprintf("failed to prepare group snapshot for pr group %s due to error %s, skipping group snapshot creation", prGroup, err.Error()), a.client)
 			if err != nil {
 				return controller.RequeueWithError(err)
 			}
@@ -729,7 +729,7 @@ func (a *Adapter) EnsureGroupSnapshotExist() (controller.OperationResult, error)
 
 	if groupSnapshot == nil {
 		a.logger.Info(fmt.Sprintf("The number %d of component snapshots belonging to this pr group hash %s is less than 2, skipping group snapshot creation", len(componentSnapshotInfos), prGroupHash))
-		err = gitops.AnnotateSnapshot(a.context, a.snapshot, gitops.PRGroupCreationAnnotation, fmt.Sprintf("The number %d of component snapshots belonging to this pr group hash %s is less than 2, skipping group snapshot creation", len(componentSnapshotInfos), prGroupHash), a.client)
+		err = AnnotateSnapshot(a.context, a.snapshot, gitops.PRGroupCreationAnnotation, fmt.Sprintf("The number %d of component snapshots belonging to this pr group hash %s is less than 2, skipping group snapshot creation", len(componentSnapshotInfos), prGroupHash), a.client)
 		if err != nil {
 			return controller.RequeueWithError(err)
 		}
@@ -741,7 +741,7 @@ func (a *Adapter) EnsureGroupSnapshotExist() (controller.OperationResult, error)
 		a.logger.Error(err, "Failed to create group snapshot")
 		if clienterrors.IsForbidden(err) {
 			// notify all component snapshots that group snapshot is not created for them due to
-			err = gitops.NotifyComponentSnapshotsInGroupSnapshot(a.context, a.client, componentSnapshotInfos, fmt.Sprintf(gitops.FailedToCreateGroupSnapshotMsg+" %s due to error %s", prGroup, err.Error()))
+			err = NotifyComponentSnapshotsInGroupSnapshot(a.context, a.client, componentSnapshotInfos, fmt.Sprintf(gitops.FailedToCreateGroupSnapshotMsg+" %s due to error %s", prGroup, err.Error()))
 			if err != nil {
 				a.logger.Error(err, fmt.Sprintf("Failed to annotate the component snapshots of pr group %s", prGroup))
 				return controller.RequeueWithError(err)
@@ -752,7 +752,7 @@ func (a *Adapter) EnsureGroupSnapshotExist() (controller.OperationResult, error)
 	}
 
 	// notify all component snapshots that group snapshot is created for them
-	err = gitops.NotifyComponentSnapshotsInGroupSnapshot(a.context, a.client, componentSnapshotInfos, fmt.Sprintf("Group snapshot %s/%s is created for pr group %s", groupSnapshot.Namespace, groupSnapshot.Name, prGroup))
+	err = NotifyComponentSnapshotsInGroupSnapshot(a.context, a.client, componentSnapshotInfos, fmt.Sprintf("Group snapshot %s/%s is created for pr group %s", groupSnapshot.Namespace, groupSnapshot.Name, prGroup))
 	if err != nil {
 		a.logger.Error(err, fmt.Sprintf("Failed to annotate the component snapshots for group snapshot %s/%s", a.snapshot.Namespace, a.snapshot.Name))
 		return controller.RequeueWithError(err)
@@ -785,7 +785,7 @@ func (a *Adapter) createMissingReleasesForReleasePlans(releasePlans *[]releasev1
 		}
 		// Register the first release time for metrics calculation
 		if firstRelease {
-			startTime, ok := gitops.GetAppStudioTestsFinishedTime(a.snapshot)
+			startTime, ok := GetAppStudioTestsFinishedTime(a.snapshot)
 			if ok {
 				metrics.RegisterReleaseLatency(startTime)
 				firstRelease = false
@@ -831,7 +831,7 @@ func (a *Adapter) createAutomatedRelease(releasePlan *releasev1alpha1.ReleasePla
 // shouldUpdateIntegrationGitResolver checks if the integration test resolver should be updated based on the source repo
 func shouldUpdateIntegrationGitResolver(integrationTestScenario *v1beta2.IntegrationTestScenario, snapshot *applicationapiv1alpha1.Snapshot) bool {
 	// only "pull-requests" are applicable
-	if gitops.IsSnapshotCreatedByPACPushEvent(snapshot) {
+	if IsSnapshotCreatedByPACPushEvent(snapshot) {
 		return false
 	}
 
@@ -883,8 +883,8 @@ func (a *Adapter) createIntegrationPipelineRun(application *applicationapiv1alph
 
 	a.logger.LogAuditEvent("IntegrationTestscenario pipeline has been created", pipelineRun, h.LogActionAdd,
 		"integrationTestScenario.Name", integrationTestScenario.Name)
-	if gitops.IsSnapshotNotStarted(a.snapshot) {
-		err := gitops.MarkSnapshotIntegrationStatusAsInProgress(a.context, a.client, a.snapshot, "Snapshot starts being tested by the integrationPipelineRun")
+	if IsSnapshotNotStarted(a.snapshot) {
+		err := MarkSnapshotIntegrationStatusAsInProgress(a.context, a.client, a.snapshot, "Snapshot starts being tested by the integrationPipelineRun")
 		if err != nil {
 			a.logger.Error(err, "Failed to update integration status condition to in progress for snapshot")
 		} else {
@@ -912,7 +912,7 @@ func (a *Adapter) HandlePipelineCreationError(err error, integrationTestScenario
 	testStatuses.UpdateTestStatusIfChanged(
 		integrationTestScenario.Name, intgteststat.IntegrationTestStatusTestInvalid,
 		fmt.Sprintf("Creation of pipelineRun failed during creation due to: %s.", err))
-	itsErr := gitops.WriteIntegrationTestStatusesIntoSnapshot(a.context, a.snapshot, testStatuses, a.client)
+	itsErr := WriteIntegrationTestStatusesIntoSnapshot(a.context, a.snapshot, testStatuses, a.client)
 	if itsErr != nil {
 		a.logger.Error(err, "Failed to write Test Status into Snapshot")
 		return controller.RequeueWithError(itsErr)
@@ -965,7 +965,7 @@ func (a *Adapter) prepareGroupSnapshot(application *applicationapiv1alpha1.Appli
 			}
 			if foundSnapshotWithOpenedPR != nil {
 				a.logger.Info("PR/MR in snapshot is opened, will find snapshotComponent and add to groupSnapshot")
-				snapshotComponent := gitops.FindMatchingSnapshotComponent(foundSnapshotWithOpenedPR, &applicationComponent)
+				snapshotComponent := FindMatchingSnapshotComponent(foundSnapshotWithOpenedPR, &applicationComponent)
 				componentSnapshotInfos = append(componentSnapshotInfos, gitops.ComponentSnapshotInfo{
 					Component:         applicationComponent.Name,
 					BuildPipelineRun:  foundSnapshotWithOpenedPR.Labels[gitops.BuildPipelineRunNameLabel],
@@ -981,7 +981,7 @@ func (a *Adapter) prepareGroupSnapshot(application *applicationapiv1alpha1.Appli
 
 		a.logger.Info("can't find snapshot with open pull/merge request for component, try to find snapshotComponent from Global Candidate List", "component", applicationComponent.Name)
 		// if there is no component snapshot found for open PR/MR, we get snapshotComponent from gcl
-		componentSource, err := gitops.GetComponentSourceFromComponent(&applicationComponent)
+		componentSource, err := GetComponentSourceFromComponent(&applicationComponent)
 		if err != nil {
 			a.logger.Error(err, "component cannot be added to snapshot for application due to missing git source", "component.Name", applicationComponent.Name)
 			continue
@@ -993,7 +993,7 @@ func (a *Adapter) prepareGroupSnapshot(application *applicationapiv1alpha1.Appli
 		} else {
 			// if the containerImage doesn't have a valid digest, the component
 			// will not be added to snapshot
-			err := gitops.ValidateImageDigest(containerImage)
+			err := ValidateImageDigest(containerImage)
 			if err != nil {
 				a.logger.Error(err, "component cannot be added to snapshot for application due to invalid digest in containerImage", "component.Name", applicationComponent.Name)
 				continue
@@ -1013,14 +1013,14 @@ func (a *Adapter) prepareGroupSnapshot(application *applicationapiv1alpha1.Appli
 		return nil, componentSnapshotInfos, nil
 	}
 
-	groupSnapshot := gitops.NewSnapshot(application, &snapshotComponents)
+	groupSnapshot := NewSnapshot(application, &snapshotComponents)
 	err = ctrl.SetControllerReference(application, groupSnapshot, a.client.Scheme())
 	if err != nil {
 		a.logger.Error(err, "failed to set owner reference to group snapshot")
 		return nil, nil, err
 	}
 
-	groupSnapshot, err = gitops.SetAnnotationAndLabelForGroupSnapshot(groupSnapshot, a.snapshot, componentSnapshotInfos)
+	groupSnapshot, err = SetAnnotationAndLabelForGroupSnapshot(groupSnapshot, a.snapshot, componentSnapshotInfos)
 	if err != nil {
 		a.logger.Error(err, "failed to annotate group snapshot")
 		return nil, nil, err
@@ -1059,7 +1059,7 @@ func (a *Adapter) haveAllPipelineRunProcessedForPrGroup(prGroup, prGroupHash str
 		// check if build PLR succeeds
 		if !h.HasPipelineRunSucceeded(&pipelineRun) {
 			a.logger.Info(fmt.Sprintf("The build pipelineRun %s/%s with pr group %s failed, won't create group snapshot", pipelineRun.Namespace, pipelineRun.Name, prGroup))
-			err := gitops.AnnotateSnapshot(a.context, a.snapshot, gitops.PRGroupCreationAnnotation, fmt.Sprintf("The build pipelineRun %s/%s with pr group %s failed, won't create group snapshot", pipelineRun.Namespace, pipelineRun.Name, prGroup), a.client)
+			err := AnnotateSnapshot(a.context, a.snapshot, gitops.PRGroupCreationAnnotation, fmt.Sprintf("The build pipelineRun %s/%s with pr group %s failed, won't create group snapshot", pipelineRun.Namespace, pipelineRun.Name, prGroup), a.client)
 			if err != nil {
 				return false, err
 			}
@@ -1080,7 +1080,7 @@ func (a *Adapter) haveAllPipelineRunProcessedForPrGroup(prGroup, prGroupHash str
 func (a *Adapter) checkAndCancelOldSnapshotsPipelineRun(application *applicationapiv1alpha1.Application, snapshot *applicationapiv1alpha1.Snapshot) error {
 	var err error
 	snapshots := &[]applicationapiv1alpha1.Snapshot{}
-	if gitops.IsComponentSnapshot(snapshot) {
+	if IsComponentSnapshot(snapshot) {
 		snapshots, err = a.loader.GetAllSnapshotsForPR(a.context, a.client, application, snapshot.GetLabels()[gitops.SnapshotComponentLabel], snapshot.GetLabels()[gitops.PipelineAsCodePullRequestAnnotation])
 		if err != nil {
 			a.logger.Error(err, "Failed to fetch Snapshots for the application",
@@ -1089,8 +1089,8 @@ func (a *Adapter) checkAndCancelOldSnapshotsPipelineRun(application *application
 		}
 	}
 
-	if gitops.IsGroupSnapshot(snapshot) {
-		prGroupHash, prGroup := gitops.GetPRGroup(snapshot)
+	if IsGroupSnapshot(snapshot) {
+		prGroupHash, prGroup := GetPRGroup(snapshot)
 		if prGroupHash == "" || prGroup == "" {
 			a.logger.Error(fmt.Errorf("pr group info can't be found in group snapshot"), "snapshot.Namespace", snapshot.Namespace, "snapshot.Name", snapshot.Name)
 			return fmt.Errorf("pr group info can't be found in group snapshot %s/%s", snapshot.Namespace, snapshot.Name)
@@ -1103,18 +1103,18 @@ func (a *Adapter) checkAndCancelOldSnapshotsPipelineRun(application *application
 
 	}
 
-	sortedSnapshots := gitops.SortSnapshots(*snapshots)
+	sortedSnapshots := SortSnapshots(*snapshots)
 	// no snapshots found that fulfill the condition
 	if len(sortedSnapshots) < 2 {
 		return nil
 	}
 	for i := 1; i < len(sortedSnapshots); i++ {
-		if gitops.IsSnapshotMarkedAsCanceled(&sortedSnapshots[i]) {
+		if IsSnapshotMarkedAsCanceled(&sortedSnapshots[i]) {
 			a.logger.Info("Snapshot has been marked as cancelled previously, skipping marking it", "snapshot.Name", &sortedSnapshots[i].Name)
 			continue
 		}
 		a.logger.Info("integration test pipelineruns have been cancelled for older snapshot")
-		err = gitops.MarkSnapshotAsCanceled(a.context, a.client, &sortedSnapshots[i], "Snapshot canceled/superseded")
+		err = MarkSnapshotAsCanceled(a.context, a.client, &sortedSnapshots[i], "Snapshot canceled/superseded")
 		if err != nil {
 			a.logger.Error(err, "Failed to mark snapshot as canceled", "snapshot.Name", &sortedSnapshots[i].Name)
 			return err
@@ -1141,7 +1141,7 @@ func (a *Adapter) cancelAllPipelineRunsForSnapshot(snapshot *applicationapiv1alp
 		a.logger.Info("No integrationTest pipelineruns were found for snapshot", "snapshot.Name", snapshot.Name)
 		return nil
 	}
-	return gitops.CancelPipelineRuns(a.client, a.context, a.logger, integrationTestPipelineRuns)
+	return CancelPipelineRuns(a.client, a.context, a.logger, integrationTestPipelineRuns)
 }
 
 func (a *Adapter) isSnapshotOlderThanLastBuild(snapshot *applicationapiv1alpha1.Snapshot) bool {

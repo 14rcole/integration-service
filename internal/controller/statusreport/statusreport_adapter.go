@@ -197,7 +197,7 @@ func (a *Adapter) EnsureSnapshotFinishedAllTests() (controller.OperationResult, 
 // EnsureGroupSnapshotCreationStatusReportedToGitProvider is an operation that will ensure the group snapshot creation status is report to component snapshot
 func (a *Adapter) EnsureGroupSnapshotCreationStatusReportedToGitProvider() (controller.OperationResult, error) {
 	// Only report status for group Snapshots
-	if !gitops.IsComponentSnapshot(a.snapshot) || gitops.IsSnapshotCreatedByPACPushEvent(a.snapshot) {
+	if !IsComponentSnapshot(a.snapshot) || IsSnapshotCreatedByPACPushEvent(a.snapshot) {
 		return controller.ContinueProcessing()
 	}
 
@@ -215,8 +215,8 @@ func (a *Adapter) EnsureGroupSnapshotCreationStatusReportedToGitProvider() (cont
 	}
 
 	if allIntegrationTestScenarios != nil {
-		tempGroupSnapshot := gitops.PrepareTempGroupSnapshot(a.application, a.snapshot)
-		filterIntegrationTestScenarios := gitops.FilterIntegrationTestScenariosWithContext(allIntegrationTestScenarios, tempGroupSnapshot)
+		tempGroupSnapshot := PrepareTempGroupSnapshot(a.application, a.snapshot)
+		filterIntegrationTestScenarios := FilterIntegrationTestScenariosWithContext(allIntegrationTestScenarios, tempGroupSnapshot)
 
 		a.logger.Info(
 			fmt.Sprintf("Found %d IntegrationTestScenarios for application", len(*filterIntegrationTestScenarios)),
@@ -234,7 +234,7 @@ func (a *Adapter) EnsureGroupSnapshotCreationStatusReportedToGitProvider() (cont
 					return controller.ContinueProcessing()
 				}
 			}
-			if err = gitops.AnnotateSnapshot(a.context, a.snapshot, gitops.PRGroupCreationAnnotation, gitops.GroupSnapshotCreationFailureReported, a.client); err != nil {
+			if err = AnnotateSnapshot(a.context, a.snapshot, gitops.PRGroupCreationAnnotation, gitops.GroupSnapshotCreationFailureReported, a.client); err != nil {
 				a.logger.Error(err, fmt.Sprintf("failed to write group snapshot creation status to annotation %s", gitops.PRGroupCreationAnnotation))
 				return controller.RequeueWithError(fmt.Errorf("failed to write group snapshot creation status to annotation %s: %w", gitops.PRGroupCreationAnnotation, err))
 			}
@@ -284,7 +284,7 @@ func (a *Adapter) findUntriggeredIntegrationTestFromStatus(integrationTestScenar
 
 // ReportSnapshotStatus reports status of all integration tests into Pull Requests from component snapshot or group snapshot
 func (a *Adapter) ReportSnapshotStatus(testedSnapshot *applicationapiv1alpha1.Snapshot) (bool, error) {
-	statuses, err := gitops.NewSnapshotIntegrationTestStatusesFromSnapshot(testedSnapshot)
+	statuses, err := NewSnapshotIntegrationTestStatusesFromSnapshot(testedSnapshot)
 	if err != nil {
 		a.logger.Error(err, "failed to get test status annotations from snapshot",
 			"snapshot.Namespace", testedSnapshot.Namespace, "snapshot.Name", testedSnapshot.Name)
@@ -326,7 +326,7 @@ func (a *Adapter) ReportSnapshotStatus(testedSnapshot *applicationapiv1alpha1.Sn
 			a.logger.Error(nil, "Failed to get git reporter for snapshot - missing required labels/annotations", "snapshot.Namespace", destinationComponentSnapshot.Namespace, "snapshot.Name", destinationComponentSnapshot.Name)
 
 			// Annotate the snapshot with the error
-			annotationErr := gitops.AnnotateSnapshot(a.context, destinationComponentSnapshot, gitops.GitReportingFailureAnnotation, errMessage, a.client)
+			annotationErr := AnnotateSnapshot(a.context, destinationComponentSnapshot, GitReportingFailureAnnotation, errMessage, a.client)
 			if annotationErr != nil {
 				a.logger.Error(annotationErr, "Failed to annotate snapshot with git reporting failure")
 			}
@@ -342,7 +342,7 @@ func (a *Adapter) ReportSnapshotStatus(testedSnapshot *applicationapiv1alpha1.Sn
 
 			if helpers.IsUnrecoverableMetadataError(err) {
 				errMessage := fmt.Sprintf("unrecoverable metadata error during git reporter initialization for snapshot %s/%s: %s", destinationComponentSnapshot.Namespace, destinationComponentSnapshot.Name, err.Error())
-				annotationErr := gitops.AnnotateSnapshot(a.context, destinationComponentSnapshot, gitops.GitReportingFailureAnnotation, errMessage, a.client)
+				annotationErr := AnnotateSnapshot(a.context, destinationComponentSnapshot, GitReportingFailureAnnotation, errMessage, a.client)
 				if annotationErr != nil {
 					a.logger.Error(annotationErr, "Failed to annotate snapshot with git reporting failure")
 				}
@@ -446,9 +446,9 @@ func (a *Adapter) iterateIntegrationTestStatusDetailsInStatusReport(reporter sta
 	srs *status.SnapshotReportStatus) error {
 	// set componentName to component name of component snapshot or pr group name of group snapshot when reporting status to git provider
 	componentNameOrPrGroup := ""
-	if gitops.IsGroupSnapshot(testedSnapshot) {
+	if IsGroupSnapshot(testedSnapshot) {
 		componentNameOrPrGroup = gitops.ComponentNameForGroupSnapshot
-	} else if gitops.IsComponentSnapshot(testedSnapshot) {
+	} else if IsComponentSnapshot(testedSnapshot) {
 		componentNameOrPrGroup = testedSnapshot.Labels[gitops.SnapshotComponentLabel]
 	} else {
 		return fmt.Errorf("unsupported snapshot type: %s", testedSnapshot.Annotations[gitops.SnapshotTypeLabel])
@@ -542,7 +542,7 @@ func (a *Adapter) iterateIntegrationTestStatusDetailsInStatusReport(reporter sta
 			return fmt.Errorf("failed to get component for snapshot %s/%s: %w", destinationSnapshot.Namespace, destinationSnapshot.Name, err)
 		}
 
-		isCommentDisabled, err := gitops.IsCommentDisabled(a.context, a.client, component)
+		isCommentDisabled, err := IsCommentDisabled(a.context, a.client, component)
 		if err != nil {
 			a.logger.Error(err, fmt.Sprintf("failed to check if comment is disabled for component %s/%s", component.Namespace, component.Name))
 			return fmt.Errorf("failed to check if comment is disabled for component %s/%s: %w", component.Namespace, component.Name, err)
@@ -574,10 +574,10 @@ func (a *Adapter) iterateIntegrationTestStatusDetailsInStatusReport(reporter sta
 // getDestinationSnapshots gets the component snapshots that include the git provider info the report will be reported to
 func (a *Adapter) getDestinationSnapshots(testedSnapshot *applicationapiv1alpha1.Snapshot) ([]*applicationapiv1alpha1.Snapshot, error) {
 	destinationSnapshots := make([]*applicationapiv1alpha1.Snapshot, 0)
-	if gitops.IsComponentSnapshot(testedSnapshot) {
+	if IsComponentSnapshot(testedSnapshot) {
 		destinationSnapshots = append(destinationSnapshots, testedSnapshot)
 		return destinationSnapshots, nil
-	} else if gitops.IsGroupSnapshot(testedSnapshot) {
+	} else if IsGroupSnapshot(testedSnapshot) {
 		// get component snapshots from group snapshot annotation GroupSnapshotInfoAnnotation
 		destinationSnapshots, err := status.GetComponentSnapshotsFromGroupSnapshot(a.context, a.client, testedSnapshot)
 		if err != nil {
@@ -597,7 +597,7 @@ func (a *Adapter) labelSnapshotToTriggerUntriggeredTest(integrationTestScenarios
 	if integrationTestScenarioNotTriggered != "" {
 		a.logger.Info("Detected an integrationTestScenario was not triggered, applying snapshot reconcilation",
 			"integrationTestScenario.Name", integrationTestScenarioNotTriggered)
-		return gitops.AddIntegrationTestRerunLabel(a.context, a.client, a.snapshot, integrationTestScenarioNotTriggered)
+		return AddIntegrationTestRerunLabel(a.context, a.client, a.snapshot, integrationTestScenarioNotTriggered)
 	}
 	return nil
 }

@@ -53,7 +53,7 @@ const expectedSummary = `<ul>
 const expectedTaskLogURL = `https://definetly.not.prod/preview/application-pipeline/ns/default/pipelinerun/pipelinerun-component-sample/logs/example-task-1`
 
 var message = "Taskrun Succeeded, lucky you!"
-var componentSnapshotInfos = []*gitops.ComponentSnapshotInfo{}
+var componentSnapshotInfos = []*ComponentSnapshotInfo{}
 var PRGroup string
 
 func newTaskRun(name string, startTime time.Time, completionTime time.Time) *helpers.TaskRun {
@@ -338,7 +338,7 @@ var _ = Describe("Formatters", func() {
 				now.Add(time.Minute*5).Add(time.Second*30),
 			)
 		})
-		componentSnapshotInfos := []*gitops.ComponentSnapshotInfo{
+		componentSnapshotInfos := []*ComponentSnapshotInfo{
 			{
 				Component:         "com1",
 				Snapshot:          "snapshot1",

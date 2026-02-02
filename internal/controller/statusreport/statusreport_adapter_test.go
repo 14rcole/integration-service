@@ -445,10 +445,10 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 			buf = bytes.Buffer{}
 			log := helpers.IntegrationLogger{Logger: buflogr.NewWithBuffer(&buf)}
 
-			statuses, err := gitops.NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
+			statuses, err := NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
 			Expect(err).ToNot(HaveOccurred())
 			statuses.UpdateTestStatusIfChanged(integrationTestScenario.Name, intgteststat.IntegrationTestStatusTestPassed, "testDetails")
-			err = gitops.WriteIntegrationTestStatusesIntoSnapshot(ctx, hasSnapshot, statuses, k8sClient)
+			err = WriteIntegrationTestStatusesIntoSnapshot(ctx, hasSnapshot, statuses, k8sClient)
 			Expect(err).ToNot(HaveOccurred())
 
 			adapter = NewAdapter(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
@@ -533,7 +533,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 			}
 
 			// Check when all integrationTestScenarion exist in testStatuses of the snapshot
-			testStatuses, err := gitops.NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
+			testStatuses, err := NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
 			Expect(err).ToNot(HaveOccurred())
 			integrationTestScenarios, err := adapter.loader.GetRequiredIntegrationTestScenariosForSnapshot(adapter.context, adapter.client, adapter.application, adapter.snapshot)
 			Expect(err).ToNot(HaveOccurred())
@@ -555,10 +555,10 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 			buf = bytes.Buffer{}
 			log := helpers.IntegrationLogger{Logger: buflogr.NewWithBuffer(&buf)}
 
-			statuses, err := gitops.NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
+			statuses, err := NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
 			Expect(err).ToNot(HaveOccurred())
 			statuses.UpdateTestStatusIfChanged(integrationTestScenario.Name, intgteststat.IntegrationTestStatusTestFail, "Failed test")
-			err = gitops.WriteIntegrationTestStatusesIntoSnapshot(ctx, hasSnapshot, statuses, k8sClient)
+			err = WriteIntegrationTestStatusesIntoSnapshot(ctx, hasSnapshot, statuses, k8sClient)
 			Expect(err).ToNot(HaveOccurred())
 
 			adapter = NewAdapter(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
@@ -609,10 +609,10 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 			buf = bytes.Buffer{}
 			log := helpers.IntegrationLogger{Logger: buflogr.NewWithBuffer(&buf)}
 
-			statuses, err := gitops.NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
+			statuses, err := NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
 			Expect(err).ToNot(HaveOccurred())
 			statuses.UpdateTestStatusIfChanged(integrationTestScenario.Name, intgteststat.IntegrationTestStatusTestFail, "Failed test")
-			err = gitops.WriteIntegrationTestStatusesIntoSnapshot(ctx, hasSnapshot, statuses, k8sClient)
+			err = WriteIntegrationTestStatusesIntoSnapshot(ctx, hasSnapshot, statuses, k8sClient)
 			Expect(err).ToNot(HaveOccurred())
 
 			adapter = NewAdapter(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
@@ -663,10 +663,10 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 			buf = bytes.Buffer{}
 			log := helpers.IntegrationLogger{Logger: buflogr.NewWithBuffer(&buf)}
 
-			statuses, err := gitops.NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
+			statuses, err := NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
 			Expect(err).ToNot(HaveOccurred())
 			statuses.UpdateTestStatusIfChanged(integrationTestScenario.Name, intgteststat.IntegrationTestStatusTestPassed, "testDetails")
-			err = gitops.WriteIntegrationTestStatusesIntoSnapshot(ctx, hasSnapshot, statuses, k8sClient)
+			err = WriteIntegrationTestStatusesIntoSnapshot(ctx, hasSnapshot, statuses, k8sClient)
 			Expect(err).ToNot(HaveOccurred())
 
 			adapter = NewAdapter(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
@@ -908,7 +908,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 			// Check results
 			Expect(err).ToNot(HaveOccurred())
 			Expect(statusCode).To(BeTrue())
-			Expect(snapshotWithoutGitProvider.Annotations).To(HaveKey(gitops.GitReportingFailureAnnotation))
+			Expect(snapshotWithoutGitProvider.Annotations).To(HaveKey(GitReportingFailureAnnotation))
 
 			// Check that the error was logged
 			Expect(buf.String()).Should(ContainSubstring("Failed to get git reporter for snapshot - missing required labels/annotations"))

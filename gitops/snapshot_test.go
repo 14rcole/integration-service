@@ -163,7 +163,7 @@ var _ = Describe("Gitops functions for managing Snapshots", Ordered, func() {
 				},
 				Annotations: map[string]string{
 					"test.appstudio.openshift.io/pr-last-update": "2023-08-26T17:57:50+02:00",
-					gitops.BuildPipelineRunStartTime:             strconv.FormatInt(plrstarttime, 10),
+					BuildPipelineRunStartTime:                    strconv.FormatInt(plrstarttime, 10),
 				},
 				// this CreationTimestamp don't take effect when snapshot is created
 				// CreationTimestamp: metav1.NewTime(time.Now().Add(time.Hour * 2)),
@@ -197,14 +197,14 @@ var _ = Describe("Gitops functions for managing Snapshots", Ordered, func() {
 				Name:      hasComSnapshot2Name,
 				Namespace: namespace,
 				Labels: map[string]string{
-					gitops.SnapshotTypeLabel:                   gitops.SnapshotComponentType,
-					gitops.SnapshotComponentLabel:              hasComSnapshot2Name,
-					gitops.PipelineAsCodeEventTypeLabel:        gitops.PipelineAsCodePullRequestType,
-					gitops.PipelineAsCodePullRequestAnnotation: "1",
+					SnapshotTypeLabel:                   SnapshotComponentType,
+					SnapshotComponentLabel:              hasComSnapshot2Name,
+					PipelineAsCodeEventTypeLabel:        PipelineAsCodePullRequestType,
+					PipelineAsCodePullRequestAnnotation: "1",
 				},
 				Annotations: map[string]string{
 					"test.appstudio.openshift.io/pr-last-update": "2023-08-26T17:57:50+02:00",
-					gitops.BuildPipelineRunStartTime:             strconv.FormatInt(plrstarttime+100000, 10), // +100 seconds = +100000 milliseconds
+					BuildPipelineRunStartTime:                    strconv.FormatInt(plrstarttime+100000, 10), // +100 seconds = +100000 milliseconds
 				},
 				// this CreationTimestamp don't take effect when snapshot is created
 				// CreationTimestamp: metav1.NewTime(time.Now().Add(time.Hour * 1)),
@@ -238,14 +238,14 @@ var _ = Describe("Gitops functions for managing Snapshots", Ordered, func() {
 				Name:      hasComSnapshot3Name,
 				Namespace: namespace,
 				Labels: map[string]string{
-					gitops.SnapshotTypeLabel:                   gitops.SnapshotComponentType,
-					gitops.SnapshotComponentLabel:              hasComSnapshot3Name,
-					gitops.PipelineAsCodeEventTypeLabel:        gitops.PipelineAsCodePullRequestType,
-					gitops.PipelineAsCodePullRequestAnnotation: "1",
+					SnapshotTypeLabel:                   SnapshotComponentType,
+					SnapshotComponentLabel:              hasComSnapshot3Name,
+					PipelineAsCodeEventTypeLabel:        PipelineAsCodePullRequestType,
+					PipelineAsCodePullRequestAnnotation: "1",
 				},
 				Annotations: map[string]string{
 					"test.appstudio.openshift.io/pr-last-update": "2023-08-26T17:57:50+02:00",
-					gitops.BuildPipelineRunStartTime:             strconv.FormatInt(plrstarttime+200000, 10), // +200 seconds = +200000 milliseconds
+					BuildPipelineRunStartTime:                    strconv.FormatInt(plrstarttime+200000, 10), // +200 seconds = +200000 milliseconds
 				},
 				// this CreationTimestamp don't take effect when snapshot is created
 				// CreationTimestamp: metav1.NewTime(time.Now()),
@@ -306,16 +306,16 @@ var _ = Describe("Gitops functions for managing Snapshots", Ordered, func() {
 		err := gitops.MarkSnapshotAsPassed(ctx, k8sClient, hasSnapshot, "Test message")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(hasSnapshot.Status.Conditions).NotTo(BeNil())
-		Expect(meta.IsStatusConditionTrue(hasSnapshot.Status.Conditions, gitops.AppStudioTestSucceededCondition)).To(BeTrue())
+		Expect(meta.IsStatusConditionTrue(hasSnapshot.Status.Conditions, AppStudioTestSucceededCondition)).To(BeTrue())
 		Expect(gitops.IsSnapshotMarkedAsPassed(hasSnapshot)).To(BeTrue())
 	})
 
 	It("ensures the Snapshots LegacyTestSucceededCondition status can be marked as passed", func() {
 		patch := client.MergeFrom(hasSnapshot.DeepCopy())
 		condition := metav1.Condition{
-			Type:    gitops.LegacyTestSucceededCondition,
+			Type:    LegacyTestSucceededCondition,
 			Status:  metav1.ConditionTrue,
-			Reason:  gitops.AppStudioTestSucceededConditionSatisfied,
+			Reason:  AppStudioTestSucceededConditionSatisfied,
 			Message: "Test message",
 		}
 		meta.SetStatusCondition(&hasSnapshot.Status.Conditions, condition)
@@ -324,7 +324,7 @@ var _ = Describe("Gitops functions for managing Snapshots", Ordered, func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(hasSnapshot).NotTo(BeNil())
 		Expect(hasSnapshot.Status.Conditions).NotTo(BeNil())
-		Expect(meta.IsStatusConditionTrue(hasSnapshot.Status.Conditions, gitops.LegacyTestSucceededCondition)).To(BeTrue())
+		Expect(meta.IsStatusConditionTrue(hasSnapshot.Status.Conditions, LegacyTestSucceededCondition)).To(BeTrue())
 		Expect(gitops.IsSnapshotMarkedAsPassed(hasSnapshot)).To(BeTrue())
 		Expect(gitops.IsSnapshotMarkedAsFailed(hasSnapshot)).To(BeFalse())
 	})
@@ -332,9 +332,9 @@ var _ = Describe("Gitops functions for managing Snapshots", Ordered, func() {
 	It("ensures the Snapshots LegacyIntegrationStatusCondition status can be marked as invalid", func() {
 		patch := client.MergeFrom(hasSnapshot.DeepCopy())
 		condition := metav1.Condition{
-			Type:    gitops.LegacyIntegrationStatusCondition,
+			Type:    LegacyIntegrationStatusCondition,
 			Status:  metav1.ConditionFalse,
-			Reason:  gitops.AppStudioIntegrationStatusInvalid,
+			Reason:  AppStudioIntegrationStatusInvalid,
 			Message: "Test message",
 		}
 		meta.SetStatusCondition(&hasSnapshot.Status.Conditions, condition)
@@ -343,23 +343,23 @@ var _ = Describe("Gitops functions for managing Snapshots", Ordered, func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(hasSnapshot).NotTo(BeNil())
 		Expect(hasSnapshot.Status.Conditions).NotTo(BeNil())
-		Expect(meta.IsStatusConditionTrue(hasSnapshot.Status.Conditions, gitops.LegacyIntegrationStatusCondition)).To(BeFalse())
+		Expect(meta.IsStatusConditionTrue(hasSnapshot.Status.Conditions, LegacyIntegrationStatusCondition)).To(BeFalse())
 		Expect(gitops.IsSnapshotMarkedAsInvalid(hasSnapshot)).To(BeTrue())
-		Expect(gitops.IsSnapshotStatusConditionSet(hasSnapshot, gitops.AppStudioIntegrationStatusCondition, metav1.ConditionFalse, "Valid")).To(BeFalse())
+		Expect(gitops.IsSnapshotStatusConditionSet(hasSnapshot, AppStudioIntegrationStatusCondition, metav1.ConditionFalse, "Valid")).To(BeFalse())
 	})
 
 	It("ensures the Snapshots status can be marked as failed", func() {
 		err := gitops.MarkSnapshotAsFailed(ctx, k8sClient, hasSnapshot, "Test message")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(hasSnapshot.Status.Conditions).NotTo(BeNil())
-		Expect(meta.IsStatusConditionTrue(hasSnapshot.Status.Conditions, gitops.AppStudioTestSucceededCondition)).To(BeFalse())
+		Expect(meta.IsStatusConditionTrue(hasSnapshot.Status.Conditions, AppStudioTestSucceededCondition)).To(BeFalse())
 		Expect(gitops.IsSnapshotMarkedAsFailed(hasSnapshot)).To(BeTrue())
 	})
 
 	It("ensures the Snapshots status can be marked as error", func() {
 		gitops.SetSnapshotIntegrationStatusAsError(hasSnapshot, "Test message")
 		Expect(hasSnapshot.Status.Conditions).NotTo(BeNil())
-		Expect(meta.IsStatusConditionTrue(hasSnapshot.Status.Conditions, gitops.AppStudioIntegrationStatusCondition)).To(BeFalse())
+		Expect(meta.IsStatusConditionTrue(hasSnapshot.Status.Conditions, AppStudioIntegrationStatusCondition)).To(BeFalse())
 		Expect(gitops.IsSnapshotError(hasSnapshot)).To(BeTrue())
 	})
 
@@ -385,15 +385,15 @@ var _ = Describe("Gitops functions for managing Snapshots", Ordered, func() {
 		err := gitops.MarkSnapshotIntegrationStatusAsInProgress(ctx, k8sClient, hasSnapshot, "Test message")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(hasSnapshot.Status.Conditions).NotTo(BeNil())
-		foundStatusCondition := meta.FindStatusCondition(hasSnapshot.Status.Conditions, gitops.AppStudioIntegrationStatusCondition)
-		Expect(foundStatusCondition.Reason).To(Equal(gitops.AppStudioIntegrationStatusInProgress))
+		foundStatusCondition := meta.FindStatusCondition(hasSnapshot.Status.Conditions, AppStudioIntegrationStatusCondition)
+		Expect(foundStatusCondition.Reason).To(Equal(AppStudioIntegrationStatusInProgress))
 	})
 
 	It("ensures the Snapshots status can be marked as invalid", func() {
 		err := gitops.MarkSnapshotAsInvalid(ctx, k8sClient, hasSnapshot, "Test message")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(hasSnapshot.Status.Conditions).NotTo(BeNil())
-		Expect(meta.IsStatusConditionTrue(hasSnapshot.Status.Conditions, gitops.AppStudioIntegrationStatusCondition)).To(BeFalse())
+		Expect(meta.IsStatusConditionTrue(hasSnapshot.Status.Conditions, AppStudioIntegrationStatusCondition)).To(BeFalse())
 		Expect(gitops.IsSnapshotMarkedAsPassed(hasSnapshot)).To(BeFalse())
 	})
 
@@ -403,7 +403,7 @@ var _ = Describe("Gitops functions for managing Snapshots", Ordered, func() {
 		err := gitops.MarkSnapshotAsAutoReleased(ctx, k8sClient, hasSnapshot, "Test message")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(hasSnapshot.Status.Conditions).NotTo(BeNil())
-		foundStatusCondition := meta.FindStatusCondition(hasSnapshot.Status.Conditions, gitops.SnapshotAutoReleasedCondition)
+		foundStatusCondition := meta.FindStatusCondition(hasSnapshot.Status.Conditions, SnapshotAutoReleasedCondition)
 		Expect(foundStatusCondition.Status).To(Equal(metav1.ConditionTrue))
 		Expect(foundStatusCondition.Message).To(Equal("Test message"))
 
@@ -631,7 +631,7 @@ var _ = Describe("Gitops functions for managing Snapshots", Ordered, func() {
 	})
 
 	It("ensures the different Snapshots can be successfully compared if missing event-type label", func() {
-		err := metadata.DeleteLabel(hasSnapshot, gitops.PipelineAsCodeEventTypeLabel)
+		err := metadata.DeleteLabel(hasSnapshot, PipelineAsCodeEventTypeLabel)
 		Expect(err).ToNot(HaveOccurred())
 		expectedSnapshot := hasSnapshot.DeepCopy()
 		comparisonResult := gitops.CompareSnapshots(hasSnapshot, expectedSnapshot)
@@ -654,8 +654,8 @@ var _ = Describe("Gitops functions for managing Snapshots", Ordered, func() {
 		Expect(hasSnapshot).NotTo(BeNil())
 		Expect(hasSnapshot.Status.Conditions).NotTo(BeNil())
 		Expect(gitops.IsSnapshotValid(hasSnapshot)).To(BeFalse())
-		Expect(gitops.IsSnapshotStatusConditionSet(hasSnapshot, gitops.AppStudioIntegrationStatusCondition,
-			metav1.ConditionFalse, gitops.AppStudioIntegrationStatusInvalid)).To(BeTrue())
+		Expect(gitops.IsSnapshotStatusConditionSet(hasSnapshot, AppStudioIntegrationStatusCondition,
+			metav1.ConditionFalse, AppStudioIntegrationStatusInvalid)).To(BeTrue())
 	})
 
 	It("ensures the Snapshots status can be detected to be valid", func() {
@@ -708,8 +708,8 @@ var _ = Describe("Gitops functions for managing Snapshots", Ordered, func() {
 		Expect(canBePromoted).To(BeFalse())
 		Expect(reasons).To(HaveLen(1))
 
-		hasSnapshot.Labels[gitops.PipelineAsCodeEventTypeLabel] = gitops.PipelineAsCodePullRequestType
-		hasSnapshot.Labels[gitops.PipelineAsCodePullRequestAnnotation] = "1"
+		hasSnapshot.Labels[PipelineAsCodeEventTypeLabel] = PipelineAsCodePullRequestType
+		hasSnapshot.Labels[PipelineAsCodePullRequestAnnotation] = "1"
 		canBePromoted, reasons = gitops.CanSnapshotBePromoted(hasSnapshot)
 		Expect(canBePromoted).To(BeFalse())
 		Expect(reasons).To(HaveLen(2))
@@ -719,14 +719,14 @@ var _ = Describe("Gitops functions for managing Snapshots", Ordered, func() {
 		Expect(canBePromoted).To(BeFalse())
 		Expect(reasons).To(HaveLen(3))
 
-		hasSnapshot.Labels[gitops.AutoReleaseLabel] = "false"
+		hasSnapshot.Labels[AutoReleaseLabel] = "false"
 		canBePromoted, reasons = gitops.CanSnapshotBePromoted(hasSnapshot)
 		Expect(canBePromoted).To(BeFalse())
 		Expect(reasons).To(HaveLen(4))
 
 		// Makes sure the auto-release annotation supercedes the label
-		hasSnapshot.Labels[gitops.AutoReleaseLabel] = "true"
-		hasSnapshot.Annotations[gitops.AutoReleaseLabel] = "false"
+		hasSnapshot.Labels[AutoReleaseLabel] = "true"
+		hasSnapshot.Annotations[AutoReleaseLabel] = "false"
 		canBePromoted, reasons = gitops.CanSnapshotBePromoted(hasSnapshot)
 		Expect(canBePromoted).To(BeFalse())
 		Expect(reasons).To(HaveLen(3))
@@ -746,10 +746,10 @@ var _ = Describe("Gitops functions for managing Snapshots", Ordered, func() {
 
 	It("can determine if the snapshot originated from a merge queue event", func() {
 		mergeQueueSnapshot := hasSnapshot.DeepCopy()
-		mergeQueueSnapshot.Annotations[gitops.PipelineAsCodeSourceBranchAnnotation] = "somebranch"
+		mergeQueueSnapshot.Annotations[PipelineAsCodeSourceBranchAnnotation] = "somebranch"
 		Expect(gitops.IsSnapshotCreatedByPACMergeQueueEvent(mergeQueueSnapshot)).To(BeFalse())
 
-		mergeQueueSnapshot.Annotations[gitops.PipelineAsCodeSourceBranchAnnotation] = "gh-readonly-queue/main/pr-2987-bda9b312bf224a6b5fb1e7ed6ae76dd9e6b1b75b"
+		mergeQueueSnapshot.Annotations[PipelineAsCodeSourceBranchAnnotation] = "gh-readonly-queue/main/pr-2987-bda9b312bf224a6b5fb1e7ed6ae76dd9e6b1b75b"
 		Expect(gitops.IsSnapshotCreatedByPACMergeQueueEvent(mergeQueueSnapshot)).To(BeTrue())
 	})
 
@@ -758,31 +758,31 @@ var _ = Describe("Gitops functions for managing Snapshots", Ordered, func() {
 		pullRequestNumber := gitops.ExtractPullRequestNumberFromMergeQueueSnapshot(mergeQueueSnapshot)
 		Expect(pullRequestNumber).To(Equal(""))
 
-		mergeQueueSnapshot.Annotations[gitops.PipelineAsCodeSourceBranchAnnotation] = "main"
+		mergeQueueSnapshot.Annotations[PipelineAsCodeSourceBranchAnnotation] = "main"
 		pullRequestNumber = gitops.ExtractPullRequestNumberFromMergeQueueSnapshot(mergeQueueSnapshot)
 		Expect(pullRequestNumber).To(Equal(""))
 
-		mergeQueueSnapshot.Annotations[gitops.PipelineAsCodeSourceBranchAnnotation] = "gh-readonly-queue/main"
+		mergeQueueSnapshot.Annotations[PipelineAsCodeSourceBranchAnnotation] = "gh-readonly-queue/main"
 		pullRequestNumber = gitops.ExtractPullRequestNumberFromMergeQueueSnapshot(mergeQueueSnapshot)
 		Expect(pullRequestNumber).To(Equal(""))
 
-		mergeQueueSnapshot.Annotations[gitops.PipelineAsCodeSourceBranchAnnotation] = "gh-readonly-queue/main/invalid-suffix"
+		mergeQueueSnapshot.Annotations[PipelineAsCodeSourceBranchAnnotation] = "gh-readonly-queue/main/invalid-suffix"
 		pullRequestNumber = gitops.ExtractPullRequestNumberFromMergeQueueSnapshot(mergeQueueSnapshot)
 		Expect(pullRequestNumber).To(Equal(""))
 
-		mergeQueueSnapshot.Annotations[gitops.PipelineAsCodeSourceBranchAnnotation] = "gh-readonly-queue/main/pr-2987-bda9b312bf224a6b5fb1e7ed6ae76dd9e6b1b75b"
+		mergeQueueSnapshot.Annotations[PipelineAsCodeSourceBranchAnnotation] = "gh-readonly-queue/main/pr-2987-bda9b312bf224a6b5fb1e7ed6ae76dd9e6b1b75b"
 		pullRequestNumber = gitops.ExtractPullRequestNumberFromMergeQueueSnapshot(mergeQueueSnapshot)
 		Expect(pullRequestNumber).To(Equal("2987"))
 
-		mergeQueueSnapshot.Annotations[gitops.PipelineAsCodeSourceBranchAnnotation] = "refs/heads/gh-readonly-queue/main/pr-7-54e7d2bfec0e0570915f5770c890407c714e6139"
+		mergeQueueSnapshot.Annotations[PipelineAsCodeSourceBranchAnnotation] = "refs/heads/gh-readonly-queue/main/pr-7-54e7d2bfec0e0570915f5770c890407c714e6139"
 		pullRequestNumber = gitops.ExtractPullRequestNumberFromMergeQueueSnapshot(mergeQueueSnapshot)
 		Expect(pullRequestNumber).To(Equal("7"))
 
-		mergeQueueSnapshot.Annotations[gitops.PipelineAsCodePullRequestAnnotation] = "214"
+		mergeQueueSnapshot.Annotations[PipelineAsCodePullRequestAnnotation] = "214"
 		pullRequestNumber = gitops.ExtractPullRequestNumberFromMergeQueueSnapshot(mergeQueueSnapshot)
 		Expect(pullRequestNumber).To(Equal("214"))
 
-		mergeQueueSnapshot.Labels[gitops.PipelineAsCodePullRequestAnnotation] = "219"
+		mergeQueueSnapshot.Labels[PipelineAsCodePullRequestAnnotation] = "219"
 		pullRequestNumber = gitops.ExtractPullRequestNumberFromMergeQueueSnapshot(mergeQueueSnapshot)
 		Expect(pullRequestNumber).To(Equal("219"))
 	})
@@ -927,7 +927,7 @@ var _ = Describe("Gitops functions for managing Snapshots", Ordered, func() {
 
 		It("snaphost has label defined", func() {
 			testScenario := "test-scenario"
-			hasSnapshot.Labels[gitops.SnapshotIntegrationTestRun] = testScenario
+			hasSnapshot.Labels[SnapshotIntegrationTestRun] = testScenario
 			val, ok := gitops.GetIntegrationTestRunLabelValue(hasSnapshot)
 			Expect(ok).To(BeTrue())
 			Expect(val).To(Equal(testScenario))
@@ -964,12 +964,12 @@ var _ = Describe("Gitops functions for managing Snapshots", Ordered, func() {
 				// cannot create real object, reconciliation would just fetch it and process it
 				// rerun label would be removed
 				snapshotRerun = hasSnapshot.DeepCopy()
-				snapshotRerun.Labels[gitops.SnapshotIntegrationTestRun] = testScenario
+				snapshotRerun.Labels[SnapshotIntegrationTestRun] = testScenario
 			})
 
 			It("removes re-run label from snapshot and saves result into DB", func() {
 				m := MatchKeys(IgnoreExtras, Keys{
-					gitops.SnapshotIntegrationTestRun: Equal(testScenario),
+					SnapshotIntegrationTestRun: Equal(testScenario),
 				})
 				Expect(snapshotRerun.GetLabels()).Should(m, "have re-run label")
 				err := gitops.RemoveIntegrationTestRerunLabel(ctx, k8sClient, snapshotRerun)
@@ -985,7 +985,7 @@ var _ = Describe("Gitops functions for managing Snapshots", Ordered, func() {
 			var overrideSnapshot *applicationapiv1alpha1.Snapshot
 			BeforeEach(func() {
 				overrideSnapshot = hasSnapshot.DeepCopy()
-				overrideSnapshot.Labels[gitops.SnapshotTypeLabel] = gitops.SnapshotOverrideType
+				overrideSnapshot.Labels[SnapshotTypeLabel] = SnapshotOverrideType
 				Expect(controllerutil.HasControllerReference(overrideSnapshot)).To(BeFalse())
 			})
 
@@ -1065,30 +1065,30 @@ var _ = Describe("Gitops functions for managing Snapshots", Ordered, func() {
 				Expect(*filteredScenarios).To(HaveLen(6))
 
 				// A component Snapshot for pull request event referencing the component-sample
-				hasSnapshot.Labels[gitops.PipelineAsCodeEventTypeLabel] = gitops.PipelineAsCodePullRequestType
-				hasSnapshot.Labels[gitops.PipelineAsCodePullRequestAnnotation] = "1"
+				hasSnapshot.Labels[PipelineAsCodeEventTypeLabel] = PipelineAsCodePullRequestType
+				hasSnapshot.Labels[PipelineAsCodePullRequestAnnotation] = "1"
 				filteredScenarios = gitops.FilterIntegrationTestScenariosWithContext(&allScenarios, hasSnapshot)
 				Expect(*filteredScenarios).To(HaveLen(6))
 
 				// A group Snapshot for pull request event referencing component-sample-2
-				hasSnapshot.Labels[gitops.SnapshotComponentLabel] = "component-sample-2"
+				hasSnapshot.Labels[SnapshotComponentLabel] = "component-sample-2"
 				filteredScenarios = gitops.FilterIntegrationTestScenariosWithContext(&allScenarios, hasSnapshot)
 				Expect(*filteredScenarios).To(HaveLen(6))
 
 				// A group Snapshot for pull request event for a PR group
-				hasSnapshot.Labels[gitops.SnapshotTypeLabel] = "group"
-				hasSnapshot.Labels[gitops.SnapshotComponentLabel] = ""
+				hasSnapshot.Labels[SnapshotTypeLabel] = "group"
+				hasSnapshot.Labels[SnapshotComponentLabel] = ""
 				filteredScenarios = gitops.FilterIntegrationTestScenariosWithContext(&allScenarios, hasSnapshot)
 				Expect(*filteredScenarios).To(HaveLen(5))
 
 				// An override Snapshot
-				hasSnapshot.Labels[gitops.SnapshotTypeLabel] = "override"
+				hasSnapshot.Labels[SnapshotTypeLabel] = "override"
 				filteredScenarios = gitops.FilterIntegrationTestScenariosWithContext(&allScenarios, hasSnapshot)
 				Expect(*filteredScenarios).To(HaveLen(3))
 			})
 
 			It("Testing annotating snapshot", func() {
-				hasSnapshot.Labels[gitops.PipelineAsCodeEventTypeLabel] = gitops.PipelineAsCodePullRequestType
+				hasSnapshot.Labels[PipelineAsCodeEventTypeLabel] = PipelineAsCodePullRequestType
 				componentSnapshotInfos := []gitops.ComponentSnapshotInfo{
 					{
 						Component:        "com1",
@@ -1106,7 +1106,7 @@ var _ = Describe("Gitops functions for managing Snapshots", Ordered, func() {
 				snapshot, err := gitops.SetAnnotationAndLabelForGroupSnapshot(hasSnapshot, hasSnapshot, componentSnapshotInfos)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(componentSnapshotInfos).To(HaveLen(2))
-				Expect(snapshot.Labels[gitops.SnapshotTypeLabel]).To(Equal("group"))
+				Expect(snapshot.Labels[SnapshotTypeLabel]).To(Equal("group"))
 				Expect(gitops.IsSnapshotCreatedByPACPushEvent(snapshot)).To(BeFalse())
 
 			})
@@ -1120,26 +1120,26 @@ var _ = Describe("Gitops functions for managing Snapshots", Ordered, func() {
 				Expect(gitops.IsSnapshotCreatedByPACPushEvent(snapshot)).To(BeTrue())
 
 				// If the Snapshot is the group type, we consider it as a pull request type
-				snapshot.Labels[gitops.SnapshotTypeLabel] = "group"
+				snapshot.Labels[SnapshotTypeLabel] = "group"
 				Expect(gitops.IsSnapshotCreatedByPACPushEvent(snapshot)).To(BeFalse())
 
 				// If the snapshot has the push event type for both gitHub and gitLab, we consider it a push-type
 				snapshot.Labels = make(map[string]string)
-				snapshot.Labels[gitops.PipelineAsCodeEventTypeLabel] = gitops.PipelineAsCodePushType
+				snapshot.Labels[PipelineAsCodeEventTypeLabel] = PipelineAsCodePushType
 				Expect(gitops.IsSnapshotCreatedByPACPushEvent(snapshot)).To(BeTrue())
-				snapshot.Labels[gitops.PipelineAsCodeEventTypeLabel] = gitops.PipelineAsCodeGLPushType
+				snapshot.Labels[PipelineAsCodeEventTypeLabel] = PipelineAsCodeGLPushType
 				Expect(gitops.IsSnapshotCreatedByPACPushEvent(snapshot)).To(BeTrue())
 				// We disregard the pull request number label if the event type is `push`
-				snapshot.Labels[gitops.PipelineAsCodePullRequestAnnotation] = "12"
+				snapshot.Labels[PipelineAsCodePullRequestAnnotation] = "12"
 				Expect(gitops.IsSnapshotCreatedByPACPushEvent(snapshot)).To(BeTrue())
 
 				// We consider the merge queue snapshot with the `push` event type to be the pull request type
 				// This is because merge queues are triggered by pushing to a temporary branch
 				snapshot.Labels = make(map[string]string)
-				snapshot.Labels[gitops.PipelineAsCodeEventTypeLabel] = gitops.PipelineAsCodePushType
-				snapshot.Annotations[gitops.PipelineAsCodeSourceBranchAnnotation] = "gh-readonly-queue/main/pr-2987-bda9b312bf224a6b5fb1e7ed6ae76dd9e6b1b75b"
+				snapshot.Labels[PipelineAsCodeEventTypeLabel] = PipelineAsCodePushType
+				snapshot.Annotations[PipelineAsCodeSourceBranchAnnotation] = "gh-readonly-queue/main/pr-2987-bda9b312bf224a6b5fb1e7ed6ae76dd9e6b1b75b"
 				Expect(gitops.IsSnapshotCreatedByPACPushEvent(snapshot)).To(BeFalse())
-				snapshot.Annotations[gitops.PipelineAsCodeSourceBranchAnnotation] = "refs/heads/gh-readonly-queue/main/pr-7-54e7d2bfec0e0570915f5770c890407c714e6139"
+				snapshot.Annotations[PipelineAsCodeSourceBranchAnnotation] = "refs/heads/gh-readonly-queue/main/pr-7-54e7d2bfec0e0570915f5770c890407c714e6139"
 				Expect(gitops.IsSnapshotCreatedByPACPushEvent(snapshot)).To(BeFalse())
 			})
 
@@ -1158,9 +1158,9 @@ var _ = Describe("Gitops functions for managing Snapshots", Ordered, func() {
 			expectedPRGroup := "feature1"
 			expectedPRGoupSha := "feature1hash"
 			BeforeEach(func() {
-				hasComSnapshot1.Labels[gitops.PRGroupHashLabel] = expectedPRGoupSha
-				hasComSnapshot1.Annotations[gitops.PRGroupAnnotation] = expectedPRGroup
-				hasComSnapshot1.Annotations[gitops.PRGroupCreationAnnotation] = "group snapshot is created"
+				hasComSnapshot1.Labels[PRGroupHashLabel] = expectedPRGoupSha
+				hasComSnapshot1.Annotations[PRGroupAnnotation] = expectedPRGroup
+				hasComSnapshot1.Annotations[PRGroupCreationAnnotation] = "group snapshot is created"
 			})
 
 			It("make sure pr group annotation/label can be found in group", func() {
@@ -1169,7 +1169,7 @@ var _ = Describe("Gitops functions for managing Snapshots", Ordered, func() {
 				Expect(prGroupSha).To(Equal(expectedPRGoupSha))
 				Expect(gitops.HasPRGroupProcessed(hasComSnapshot1)).To(BeTrue())
 
-				hasComSnapshot1.Annotations[gitops.PRGroupCreationAnnotation] = "a new build PLR component-sample-on-pull-request-jhctk is running for component component-sample, waiting for it to create a new group Snapshot for PR group test-branch"
+				hasComSnapshot1.Annotations[PRGroupCreationAnnotation] = "a new build PLR component-sample-on-pull-request-jhctk is running for component component-sample, waiting for it to create a new group Snapshot for PR group test-branch"
 				Expect(gitops.HasPRGroupProcessed(hasComSnapshot1)).To(BeFalse())
 			})
 
@@ -1192,9 +1192,9 @@ var _ = Describe("Gitops functions for managing Snapshots", Ordered, func() {
 				hasComSnapshot1.CreationTimestamp = metav1.NewTime(time.Now().Add(time.Hour * 2))
 				hasComSnapshot2.CreationTimestamp = metav1.NewTime(time.Now().Add(time.Hour * 1))
 				hasComSnapshot3.CreationTimestamp = metav1.NewTime(time.Now())
-				Expect(metadata.DeleteAnnotation(hasComSnapshot1, gitops.BuildPipelineRunStartTime)).To(Succeed())
-				Expect(metadata.DeleteAnnotation(hasComSnapshot2, gitops.BuildPipelineRunStartTime)).To(Succeed())
-				Expect(metadata.DeleteAnnotation(hasComSnapshot3, gitops.BuildPipelineRunStartTime)).To(Succeed())
+				Expect(metadata.DeleteAnnotation(hasComSnapshot1, BuildPipelineRunStartTime)).To(Succeed())
+				Expect(metadata.DeleteAnnotation(hasComSnapshot2, BuildPipelineRunStartTime)).To(Succeed())
+				Expect(metadata.DeleteAnnotation(hasComSnapshot3, BuildPipelineRunStartTime)).To(Succeed())
 				snapshots := []applicationapiv1alpha1.Snapshot{*hasComSnapshot1, *hasComSnapshot2, *hasComSnapshot3}
 				sortedSnapshots := gitops.SortSnapshots(snapshots)
 				Expect(sortedSnapshots[0].Name).To(Equal(hasComSnapshot1.Name))
@@ -1204,8 +1204,8 @@ var _ = Describe("Gitops functions for managing Snapshots", Ordered, func() {
 			})
 
 			It("Can notify all component snapshots group snapshot creation status", func() {
-				Expect(metadata.HasAnnotation(hasComSnapshot2, gitops.PRGroupCreationAnnotation)).To(BeFalse())
-				Expect(metadata.HasAnnotation(hasComSnapshot3, gitops.PRGroupCreationAnnotation)).To(BeFalse())
+				Expect(metadata.HasAnnotation(hasComSnapshot2, PRGroupCreationAnnotation)).To(BeFalse())
+				Expect(metadata.HasAnnotation(hasComSnapshot3, PRGroupCreationAnnotation)).To(BeFalse())
 				componentSnapshotInfos := []gitops.ComponentSnapshotInfo{
 					{
 						Namespace:         "default",
@@ -1231,14 +1231,14 @@ var _ = Describe("Gitops functions for managing Snapshots", Ordered, func() {
 						Name:      hasComSnapshot2.Name,
 						Namespace: namespace,
 					}, hasComSnapshot2)
-					return metadata.HasAnnotationWithValue(hasComSnapshot2, gitops.PRGroupCreationAnnotation, "group snapshot created")
+					return metadata.HasAnnotationWithValue(hasComSnapshot2, PRGroupCreationAnnotation, "group snapshot created")
 				}, time.Second*10).Should(BeTrue())
 				Eventually(func() bool {
 					_ = k8sClient.Get(ctx, types.NamespacedName{
 						Name:      hasComSnapshot3.Name,
 						Namespace: namespace,
 					}, hasComSnapshot3)
-					return metadata.HasAnnotationWithValue(hasComSnapshot3, gitops.PRGroupCreationAnnotation, "group snapshot created")
+					return metadata.HasAnnotationWithValue(hasComSnapshot3, PRGroupCreationAnnotation, "group snapshot created")
 				}, time.Second*10).Should(BeTrue())
 				Expect(err).ShouldNot(HaveOccurred())
 			})
@@ -1246,7 +1246,7 @@ var _ = Describe("Gitops functions for managing Snapshots", Ordered, func() {
 			It("Can return correct source repo owner for snapshot", func() {
 				sourceRepoOwner := gitops.GetSourceRepoOwnerFromSnapshot(hasSnapshot)
 				Expect(sourceRepoOwner).To(Equal(""))
-				Expect(metadata.SetAnnotation(hasSnapshot, gitops.PipelineAsCodeGitSourceURLAnnotation, "https://github.com/devfile-sample/devfile-sample-go-basic")).To(Succeed())
+				Expect(metadata.SetAnnotation(hasSnapshot, PipelineAsCodeGitSourceURLAnnotation, "https://github.com/devfile-sample/devfile-sample-go-basic")).To(Succeed())
 				sourceRepoOwner = gitops.GetSourceRepoOwnerFromSnapshot(hasSnapshot)
 				Expect(sourceRepoOwner).To(Equal("devfile-sample"))
 			})
@@ -1283,7 +1283,7 @@ var _ = Describe("Gitops functions for managing Snapshots", Ordered, func() {
 						Namespace: buildPipelineRun.Namespace,
 					},
 				}
-				prefixes := []string{gitops.BuildPipelineRunPrefix}
+				prefixes := []string{BuildPipelineRunPrefix}
 				gitops.CopyTempGroupSnapshotLabelsAndAnnotations(hasApp, tempGroupSnapshot, hasComp.Name, &buildPipelineRun.ObjectMeta, prefixes)
 				Expect(metadata.HasLabel(tempGroupSnapshot, "pac.test.appstudio.openshift.io/event-type")).To(BeTrue())
 				Expect(metadata.HasLabel(tempGroupSnapshot, "appstudio.openshift.io/component")).To(BeFalse())
@@ -1302,7 +1302,7 @@ var _ = Describe("Gitops functions for managing Snapshots", Ordered, func() {
 
 			It("can prepare temp group snapshot", func() {
 				tempGroupSnapshot := gitops.PrepareTempGroupSnapshot(hasApp, hasSnapshot)
-				Expect(metadata.HasLabelWithValue(tempGroupSnapshot, gitops.SnapshotTypeLabel, gitops.SnapshotGroupType)).To(BeTrue())
+				Expect(metadata.HasLabelWithValue(tempGroupSnapshot, SnapshotTypeLabel, SnapshotGroupType)).To(BeTrue())
 			})
 		})
 	})
@@ -1318,7 +1318,7 @@ var _ = Describe("Gitops functions for managing Snapshots", Ordered, func() {
 					URL: SampleRepoLink,
 					Settings: &pacv1alpha1.Settings{
 						Gitlab: &pacv1alpha1.GitlabSettings{
-							CommentStrategy: gitops.GitCommentPolicyAllDisabled,
+							CommentStrategy: GitCommentPolicyAllDisabled,
 						},
 					},
 				},
@@ -1331,13 +1331,13 @@ var _ = Describe("Gitops functions for managing Snapshots", Ordered, func() {
 		})
 
 		It("can determine if comments are disabled in component annotation", func() {
-			Expect(metadata.SetAnnotation(hasComp, gitops.GitCommentPolicyAnnotation, gitops.GitCommentPolicyAllDisabled)).To(Succeed())
+			Expect(metadata.SetAnnotation(hasComp, GitCommentPolicyAnnotation, GitCommentPolicyAllDisabled)).To(Succeed())
 			isIntegrationCommentDisabled := gitops.IsIntegrationTestCommentDisabledForComponent(hasComp)
 			Expect(isIntegrationCommentDisabled).To(BeTrue())
 		})
 
 		It("can determine if comments are not disabled in pac repository or component annotation", func() {
-			Expect(metadata.DeleteAnnotation(hasComp, gitops.GitCommentPolicyAnnotation)).To(Succeed())
+			Expect(metadata.DeleteAnnotation(hasComp, GitCommentPolicyAnnotation)).To(Succeed())
 			isCommentDisabled, err := gitops.IsCommentDisabled(ctx, k8sClient, hasComp)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(isCommentDisabled).To(BeFalse())

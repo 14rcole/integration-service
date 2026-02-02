@@ -32,7 +32,7 @@ type GitSource struct {
 	Revision string `json:"revision,omitempty"`
 
 	// A relative path inside the git repo containing the component
-	// Example: folderA/folderB/gitops.
+	// Example: folderA/folderB/
 	// Optional.
 	Context string `json:"context,omitempty"`
 

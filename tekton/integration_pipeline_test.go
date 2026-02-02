@@ -31,7 +31,6 @@ import (
 	"github.com/tonglil/buflogr"
 
 	applicationapiv1alpha1 "github.com/konflux-ci/application-api/api/v1alpha1"
-	"github.com/konflux-ci/integration-service/gitops"
 	tekton "github.com/konflux-ci/integration-service/tekton"
 	tektonconsts "github.com/konflux-ci/integration-service/tekton/consts"
 	knative "knative.dev/pkg/apis"

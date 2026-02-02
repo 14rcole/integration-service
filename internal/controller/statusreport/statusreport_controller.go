@@ -114,7 +114,7 @@ func setupControllerWithManager(manager ctrl.Manager, controller *Reconciler) er
 		WithEventFilter(
 			predicate.And(
 				toolkitpredicates.IgnoreBackups{},
-				gitops.SnapshotTestAnnotationChangePredicate(),
+				SnapshotTestAnnotationChangePredicate(),
 			)).
 		Complete(controller)
 }

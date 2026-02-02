@@ -323,18 +323,18 @@ var _ = Describe("Status Adapter", func() {
 					gitops.SnapshotTypeLabel:                         gitops.SnapshotComponentType,
 					gitops.SnapshotComponentLabel:                    hasComSnapshot2Name,
 					gitops.PipelineAsCodeEventTypeLabel:              gitops.PipelineAsCodePullRequestType,
-					gitops.PRGroupHashLabel:                          prGroupSha,
+					PRGroupHashLabel:                                 prGroupSha,
 					"pac.test.appstudio.openshift.io/url-org":        "testorg",
 					"pac.test.appstudio.openshift.io/url-repository": "testrepo",
 					gitops.PipelineAsCodeSHALabel:                    "sha",
-					gitops.PipelineAsCodePullRequestAnnotation:       "1",
+					PipelineAsCodePullRequestAnnotation:              "1",
 				},
 				Annotations: map[string]string{
-					"test.appstudio.openshift.io/pr-last-update":  "2023-08-26T17:57:50+02:00",
-					gitops.BuildPipelineRunStartTime:              strconv.FormatInt(plrstarttime+100000, 10), // +100 seconds = +100000 milliseconds
-					gitops.PRGroupAnnotation:                      prGroup,
-					gitops.PipelineAsCodeGitProviderAnnotation:    "github",
-					gitops.PipelineAsCodeInstallationIDAnnotation: "123",
+					"test.appstudio.openshift.io/pr-last-update": "2023-08-26T17:57:50+02:00",
+					gitops.BuildPipelineRunStartTime:             strconv.FormatInt(plrstarttime+100000, 10), // +100 seconds = +100000 milliseconds
+					gitops.PRGroupAnnotation:                     prGroup,
+					gitops.PipelineAsCodeGitProviderAnnotation:   "github",
+					PipelineAsCodeInstallationIDAnnotation:       "123",
 				},
 			},
 			Spec: applicationapiv1alpha1.SnapshotSpec{
@@ -360,19 +360,19 @@ var _ = Describe("Status Adapter", func() {
 					gitops.SnapshotTypeLabel:                         gitops.SnapshotComponentType,
 					gitops.SnapshotComponentLabel:                    hasComSnapshot3Name,
 					gitops.PipelineAsCodeEventTypeLabel:              gitops.PipelineAsCodePullRequestType,
-					gitops.PRGroupHashLabel:                          prGroupSha,
+					PRGroupHashLabel:                                 prGroupSha,
 					"pac.test.appstudio.openshift.io/url-org":        "testorg",
 					"pac.test.appstudio.openshift.io/url-repository": "testrepo",
 					gitops.PipelineAsCodeSHALabel:                    "sha",
-					gitops.PipelineAsCodePullRequestAnnotation:       "1",
+					PipelineAsCodePullRequestAnnotation:              "1",
 				},
 				Annotations: map[string]string{
-					"test.appstudio.openshift.io/pr-last-update":  "2023-08-26T17:57:50+02:00",
-					gitops.BuildPipelineRunStartTime:              strconv.FormatInt(plrstarttime+200000, 10), // +200 seconds = +200000 milliseconds
-					gitops.PRGroupAnnotation:                      prGroup,
-					gitops.PipelineAsCodeGitProviderAnnotation:    "github",
-					gitops.PipelineAsCodePullRequestAnnotation:    "1",
-					gitops.PipelineAsCodeInstallationIDAnnotation: "123",
+					"test.appstudio.openshift.io/pr-last-update": "2023-08-26T17:57:50+02:00",
+					gitops.BuildPipelineRunStartTime:             strconv.FormatInt(plrstarttime+200000, 10), // +200 seconds = +200000 milliseconds
+					gitops.PRGroupAnnotation:                     prGroup,
+					gitops.PipelineAsCodeGitProviderAnnotation:   "github",
+					PipelineAsCodePullRequestAnnotation:          "1",
+					PipelineAsCodeInstallationIDAnnotation:       "123",
 				},
 			},
 			Spec: applicationapiv1alpha1.SnapshotSpec{
@@ -397,7 +397,7 @@ var _ = Describe("Status Adapter", func() {
 				Labels: map[string]string{
 					gitops.SnapshotTypeLabel:            gitops.SnapshotGroupType,
 					gitops.PipelineAsCodeEventTypeLabel: gitops.PipelineAsCodePullRequestType,
-					gitops.PRGroupHashLabel:             prGroupSha,
+					PRGroupHashLabel:                    prGroupSha,
 				},
 				Annotations: map[string]string{
 					gitops.PRGroupAnnotation:             prGroup,
@@ -547,7 +547,7 @@ var _ = Describe("Status Adapter", func() {
 	It("can migrate snapshot to reportStatus in old way - migration test)", func() {
 		hasSnapshot.Annotations["test.appstudio.openshift.io/status"] = "[{\"scenario\":\"scenario1\",\"status\":\"InProgress\",\"startTime\":\"2023-07-26T16:57:49+02:00\",\"lastUpdateTime\":\"2023-08-26T17:57:50+02:00\",\"details\":\"Test in progress\"}]"
 		hasSnapshot.Annotations["test.appstudio.openshift.io/pr-last-update"] = "2023-08-26T17:57:50+02:00"
-		statuses, err := gitops.NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
+		statuses, err := NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
 		Expect(err).NotTo(HaveOccurred())
 		integrationTestStatusDetails := statuses.GetStatuses()
 		status.MigrateSnapshotToReportStatus(hasSnapshot, integrationTestStatusDetails)
@@ -782,14 +782,14 @@ var _ = Describe("Status Adapter", func() {
 		})
 
 		It("can return unrecoverable error when label is not defined for githubReporter", func() {
-			metadataErr := metadata.DeleteLabel(hasSnapshot, gitops.PipelineAsCodeURLOrgLabel)
+			metadataErr := metadata.DeleteLabel(hasSnapshot, PipelineAsCodeURLOrgLabel)
 			Expect(metadataErr).ToNot(HaveOccurred())
 			githubReporter := status.NewGitHubReporter(logr.Discard(), mockK8sClient)
 			statusCode, err := githubReporter.Initialize(context.Background(), hasSnapshot)
 			Expect(helpers.IsUnrecoverableMetadataError(err)).To(BeTrue())
 			Expect(statusCode).To(Equal(0))
 
-			err = metadata.SetLabel(hasSnapshot, gitops.PipelineAsCodeURLOrgLabel, "org")
+			err = metadata.SetLabel(hasSnapshot, PipelineAsCodeURLOrgLabel, "org")
 			Expect(err).ToNot(HaveOccurred())
 			err = metadata.DeleteLabel(hasSnapshot, gitops.PipelineAsCodeURLRepositoryLabel)
 			Expect(err).ToNot(HaveOccurred())
@@ -808,14 +808,14 @@ var _ = Describe("Status Adapter", func() {
 		})
 
 		It("can return unrecoverable error when label/annotation is not defined for gitlabReporter", func() {
-			err := metadata.DeleteAnnotation(hasSnapshot, gitops.PipelineAsCodeRepoURLAnnotation)
+			err := metadata.DeleteAnnotation(hasSnapshot, PipelineAsCodeRepoURLAnnotation)
 			Expect(err).ToNot(HaveOccurred())
 			gitlabReporter := status.NewGitLabReporter(logr.Discard(), mockK8sClient)
 			statusCode, err := gitlabReporter.Initialize(context.Background(), hasSnapshot)
 			Expect(helpers.IsUnrecoverableMetadataError(err)).To(BeTrue())
 			Expect(statusCode).To(Equal(0))
 
-			err = metadata.SetAnnotation(hasSnapshot, gitops.PipelineAsCodeRepoURLAnnotation, "https://test-repo.example.com")
+			err = metadata.SetAnnotation(hasSnapshot, PipelineAsCodeRepoURLAnnotation, "https://test-repo.example.com")
 			Expect(err).ToNot(HaveOccurred())
 			err = metadata.SetAnnotation(hasSnapshot, gitops.PipelineAsCodeSourceProjectIDAnnotation, "qqq")
 			Expect(err).ToNot(HaveOccurred())
@@ -839,7 +839,7 @@ var _ = Describe("Status Adapter", func() {
 		commentText, _ = status.FormatComment(commentText, integrationTestStatusDetail.Details)
 		mockReporter.EXPECT().UpdateStatusInComment(status.GenerateTestSummaryPrefixForComponent("component-sample"), commentText).Return(0, nil).AnyTimes()
 		hasSnapshot.Labels["pac.test.appstudio.openshift.io/git-provider"] = "gitlab"
-		hasSnapshot.Annotations[gitops.PipelineAsCodePullRequestAnnotation] = "123"
+		hasSnapshot.Annotations[PipelineAsCodePullRequestAnnotation] = "123"
 
 		statusCode, err := status.IterateIntegrationTestScenarioWithSameStatus(context.Background(), mockK8sClient, mockReporter, hasSnapshot, &[]v1beta2.IntegrationTestScenario{*integrationTestScenario}, integrationTestStatusDetail, hasComponent, "component-sample")
 		Expect(err).Should(Succeed())

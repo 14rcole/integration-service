@@ -99,8 +99,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			if !gitops.IsSnapshotMarkedAsInvalid(snapshot) {
-				err := gitops.MarkSnapshotAsInvalid(ctx, r.Client, snapshot,
+			if !IsSnapshotMarkedAsInvalid(snapshot) {
+				err := MarkSnapshotAsInvalid(ctx, r.Client, snapshot,
 					fmt.Sprintf("The application %s owning this snapshot doesn't exist, try again after creating application", snapshot.Spec.Application))
 				if err != nil {
 					logger.Error(err, "Failed to update the status to Invalid for the snapshot",
@@ -115,7 +115,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	if !controllerutil.HasControllerReference(snapshot) {
-		snapshot, err = gitops.SetOwnerReference(ctx, r.Client, snapshot, application)
+		snapshot, err = SetOwnerReference(ctx, r.Client, snapshot, application)
 		if err != nil {
 			logger.Error(err, fmt.Sprintf("Failed to set owner reference for snapshot %s/%s", snapshot.Namespace, snapshot.Name))
 			return ctrl.Result{}, err
@@ -177,8 +177,8 @@ func setupControllerWithManager(manager ctrl.Manager, controller *Reconciler) er
 			predicate.And(
 				toolkitpredicates.IgnoreBackups{},
 				predicate.Or(
-					gitops.IntegrationSnapshotChangePredicate(),
-					gitops.SnapshotIntegrationTestRerunTriggerPredicate(),
+					IntegrationSnapshotChangePredicate(),
+					SnapshotIntegrationTestRerunTriggerPredicate(),
 				),
 			),
 		).

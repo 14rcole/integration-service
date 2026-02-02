@@ -102,12 +102,12 @@ var _ = Describe("Integration PipelineController", func() {
 				Name:      "snapshot-sample",
 				Namespace: "default",
 				Labels: map[string]string{
-					gitops.SnapshotTypeLabel:              "component",
-					gitops.SnapshotComponentLabel:         "component-sample",
+					SnapshotTypeLabel:                     "component",
+					SnapshotComponentLabel:                "component-sample",
 					"build.appstudio.redhat.com/pipeline": "enterprise-contract",
 				},
 				Annotations: map[string]string{
-					gitops.PipelineAsCodeInstallationIDAnnotation:   "123",
+					PipelineAsCodeInstallationIDAnnotation:          "123",
 					"build.appstudio.redhat.com/commit_sha":         "6c65b2fcaea3e1a0a92476c8b5dc89e92a85f025",
 					"appstudio.redhat.com/updateComponentOnSuccess": "false",
 				},
@@ -190,7 +190,7 @@ var _ = Describe("Integration PipelineController", func() {
 					"pipelines.openshift.io/strategy":       "s2i",
 					"appstudio.openshift.io/component":      "component-sample",
 					"appstudio.openshift.io/application":    applicationName,
-					gitops.SnapshotLabel:                    hasSnapshot.Name,
+					SnapshotLabel:                           hasSnapshot.Name,
 				},
 				Annotations: map[string]string{
 					"appstudio.redhat.com/updateComponentOnSuccess": "false",
@@ -357,7 +357,7 @@ var _ = Describe("Integration PipelineController", func() {
 						"pipelines.openshift.io/runtime":        "nodejs",
 						"pipelines.openshift.io/strategy":       "s2i",
 						"appstudio.openshift.io/application":    applicationName,
-						gitops.SnapshotLabel:                    hasSnapshot.Name,
+						SnapshotLabel:                           hasSnapshot.Name,
 					},
 					Annotations: map[string]string{
 						"appstudio.redhat.com/updateComponentOnSuccess": "false",

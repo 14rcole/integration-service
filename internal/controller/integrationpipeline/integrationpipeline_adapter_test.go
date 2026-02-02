@@ -263,11 +263,11 @@ var _ = Describe("Pipeline Adapter", Ordered, func() {
 				Name:      "snapshot-sample",
 				Namespace: "default",
 				Labels: map[string]string{
-					gitops.SnapshotTypeLabel:      "component",
-					gitops.SnapshotComponentLabel: hasComp.Name,
+					SnapshotTypeLabel:      "component",
+					SnapshotComponentLabel: hasComp.Name,
 				},
 				Annotations: map[string]string{
-					gitops.PipelineAsCodeInstallationIDAnnotation: "123",
+					PipelineAsCodeInstallationIDAnnotation: "123",
 				},
 			},
 			Spec: applicationapiv1alpha1.SnapshotSpec{
@@ -412,7 +412,7 @@ var _ = Describe("Pipeline Adapter", Ordered, func() {
 			result, err := adapter.EnsureStatusReportedInSnapshot()
 			Expect(!result.CancelRequest && err == nil).To(BeTrue())
 
-			statuses, err := gitops.NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
+			statuses, err := NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
 			Expect(err).ToNot(HaveOccurred())
 
 			detail, ok := statuses.GetScenarioStatus(integrationTestScenario.Name)
@@ -564,7 +564,7 @@ var _ = Describe("Pipeline Adapter", Ordered, func() {
 				result, err := adapter.EnsureStatusReportedInSnapshot()
 				Expect(!result.CancelRequest && err == nil).To(BeTrue())
 
-				statuses, err := gitops.NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
+				statuses, err := NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
 				Expect(err).ToNot(HaveOccurred())
 
 				detail, ok := statuses.GetScenarioStatus(integrationTestScenarioFailed.Name)
@@ -584,13 +584,13 @@ var _ = Describe("Pipeline Adapter", Ordered, func() {
 					Name:      "snapshot-pr-event-sample",
 					Namespace: "default",
 					Labels: map[string]string{
-						gitops.SnapshotTypeLabel:                     "component",
-						gitops.SnapshotComponentLabel:                hasComp.Name,
+						SnapshotTypeLabel:                            "component",
+						SnapshotComponentLabel:                       hasComp.Name,
 						"pac.test.appstudio.openshift.io/event-type": "pull_request",
-						gitops.PipelineAsCodePullRequestAnnotation:   "1",
+						PipelineAsCodePullRequestAnnotation:          "1",
 					},
 					Annotations: map[string]string{
-						gitops.PipelineAsCodeInstallationIDAnnotation: "123",
+						PipelineAsCodeInstallationIDAnnotation: "123",
 					},
 				},
 				Spec: applicationapiv1alpha1.SnapshotSpec{
@@ -748,7 +748,7 @@ var _ = Describe("Pipeline Adapter", Ordered, func() {
 			result, err := adapter.EnsureStatusReportedInSnapshot()
 			Expect(!result.CancelRequest && err == nil).To(BeTrue())
 
-			statuses, err := gitops.NewSnapshotIntegrationTestStatusesFromSnapshot(snapshotPREvent)
+			statuses, err := NewSnapshotIntegrationTestStatusesFromSnapshot(snapshotPREvent)
 			Expect(err).ToNot(HaveOccurred())
 
 			detail, ok := statuses.GetScenarioStatus(integrationTestScenarioFailed.Name)
@@ -767,11 +767,11 @@ var _ = Describe("Pipeline Adapter", Ordered, func() {
 					Name:      "snapshot-override-sample",
 					Namespace: "default",
 					Labels: map[string]string{
-						gitops.SnapshotTypeLabel:      gitops.SnapshotOverrideType,
-						gitops.SnapshotComponentLabel: hasComp.Name,
+						SnapshotTypeLabel:      SnapshotOverrideType,
+						SnapshotComponentLabel: hasComp.Name,
 					},
 					Annotations: map[string]string{
-						gitops.PipelineAsCodeInstallationIDAnnotation: "123",
+						PipelineAsCodeInstallationIDAnnotation: "123",
 					},
 				},
 				Spec: applicationapiv1alpha1.SnapshotSpec{
@@ -865,7 +865,7 @@ var _ = Describe("Pipeline Adapter", Ordered, func() {
 			result, err := adapter.EnsureStatusReportedInSnapshot()
 			Expect(!result.CancelRequest && err == nil).To(BeTrue())
 
-			statuses, err := gitops.NewSnapshotIntegrationTestStatusesFromSnapshot(overrideSnapshot)
+			statuses, err := NewSnapshotIntegrationTestStatusesFromSnapshot(overrideSnapshot)
 			Expect(err).ToNot(HaveOccurred())
 
 			detail, ok := statuses.GetScenarioStatus(integrationTestScenarioFailed.Name)
@@ -1144,7 +1144,7 @@ var _ = Describe("Pipeline Adapter", Ordered, func() {
 			Expect(result.CancelRequest).To(BeFalse())
 
 			// Verify that the snapshot status was not updated (since we skipped processing)
-			statuses, err := gitops.NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
+			statuses, err := NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
 			Expect(err).ToNot(HaveOccurred())
 
 			// The snapshot should not have been updated with this PipelineRun's status
@@ -1241,7 +1241,7 @@ var _ = Describe("Pipeline Adapter", Ordered, func() {
 			Expect(result.CancelRequest).To(BeFalse())
 
 			// Verify that the snapshot status was updated (since we processed normally)
-			statuses, err := gitops.NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
+			statuses, err := NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
 			Expect(err).ToNot(HaveOccurred())
 
 			detail, ok := statuses.GetScenarioStatus(integrationTestScenario.Name)

@@ -98,8 +98,8 @@ var _ = Describe("SnapshotController", func() {
 				Name:      "snapshot-sample",
 				Namespace: "default",
 				Labels: map[string]string{
-					gitops.SnapshotTypeLabel:      "component",
-					gitops.SnapshotComponentLabel: "component-sample",
+					SnapshotTypeLabel:      "component",
+					SnapshotComponentLabel: "component-sample",
 				},
 			},
 			Spec: applicationapiv1alpha1.SnapshotSpec{
@@ -268,7 +268,7 @@ var _ = Describe("SnapshotController", func() {
 				Namespace: hasSnapshot.Namespace,
 				Name:      hasSnapshot.Name,
 			}, hasSnapshot)
-			return err == nil && gitops.IsSnapshotMarkedAsInvalid(hasSnapshot)
+			return err == nil && IsSnapshotMarkedAsInvalid(hasSnapshot)
 		}, time.Second*20).Should(BeTrue())
 	})
 

@@ -163,9 +163,9 @@ var _ = Describe("build pipeline", func() {
 		})
 
 		It("can mark build PLR as AddedToGlobalCandidateList", func() {
-			addedToGlobalCandidateListStatus := gitops.AddedToGlobalCandidateListStatus{
+			addedToGlobalCandidateListStatus := AddedToGlobalCandidateListStatus{
 				Result:          true,
-				Reason:          gitops.Success,
+				Reason:          Success,
 				LastUpdatedTime: time.Now().Format(time.RFC3339),
 			}
 

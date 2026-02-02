@@ -502,7 +502,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 				Name:      "test-component-older",
 				Namespace: "default",
 				Annotations: map[string]string{
-					gitops.BuildPipelineLastBuiltTime: "1703123456", // NEWER timestamp
+					BuildPipelineLastBuiltTime: "1703123456", // NEWER timestamp
 				},
 			},
 			Spec: applicationapiv1alpha1.ComponentSpec{
@@ -648,7 +648,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 					gitops.PRGroupHashLabel:                          prGroupSha,
 					"pac.test.appstudio.openshift.io/url-org":        "testorg",
 					"pac.test.appstudio.openshift.io/url-repository": "testrepo",
-					gitops.PipelineAsCodeSHALabel:                    "sha",
+					PipelineAsCodeSHALabel:                           "sha",
 					gitops.PipelineAsCodePullRequestAnnotation:       "1",
 					gitops.ApplicationNameLabel:                      hasApp.Name,
 				},
@@ -696,7 +696,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 					gitops.PRGroupHashLabel:                          prGroupSha,
 					"pac.test.appstudio.openshift.io/url-org":        "testorg",
 					"pac.test.appstudio.openshift.io/url-repository": "testrepo",
-					gitops.PipelineAsCodeSHALabel:                    "sha",
+					PipelineAsCodeSHALabel:                           "sha",
 					gitops.PipelineAsCodePullRequestAnnotation:       "1",
 					gitops.ApplicationNameLabel:                      hasApp.Name,
 				},
@@ -734,7 +734,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 					gitops.PRGroupHashLabel:                          prGroupSha,
 					"pac.test.appstudio.openshift.io/url-org":        "testorg",
 					"pac.test.appstudio.openshift.io/url-repository": "testrepo",
-					gitops.PipelineAsCodeSHALabel:                    "sha",
+					PipelineAsCodeSHALabel:                           "sha",
 					gitops.PipelineAsCodePullRequestAnnotation:       "1",
 					gitops.ApplicationNameLabel:                      hasApp.Name,
 				},
@@ -938,7 +938,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 			Expect(buf.String()).Should(ContainSubstring(expectedLogEntry))
 
 			// Snapshot must have InProgress tests
-			statuses, err := gitops.NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
+			statuses, err := NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
 			Expect(err).ToNot(HaveOccurred())
 			detail, ok := statuses.GetScenarioStatus(integrationTestScenario.Name)
 			Expect(ok).To(BeTrue())
@@ -983,12 +983,12 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 		It("ensures Release created successfully", func() {
 			log := helpers.IntegrationLogger{Logger: buflogr.NewWithBuffer(&buf)}
 
-			err := gitops.MarkSnapshotIntegrationStatusAsFinished(ctx, k8sClient, hasSnapshot, "Snapshot integration status condition is finished since all testing pipelines completed")
+			err := MarkSnapshotIntegrationStatusAsFinished(ctx, k8sClient, hasSnapshot, "Snapshot integration status condition is finished since all testing pipelines completed")
 			Expect(err).ToNot(HaveOccurred())
-			err = gitops.MarkSnapshotAsPassed(ctx, k8sClient, hasSnapshot, "test passed")
+			err = MarkSnapshotAsPassed(ctx, k8sClient, hasSnapshot, "test passed")
 			Expect(err).To(Succeed())
-			Expect(gitops.HaveAppStudioTestsFinished(hasSnapshot)).To(BeTrue())
-			Expect(gitops.HaveAppStudioTestsSucceeded(hasSnapshot)).To(BeTrue())
+			Expect(HaveAppStudioTestsFinished(hasSnapshot)).To(BeTrue())
+			Expect(HaveAppStudioTestsSucceeded(hasSnapshot)).To(BeTrue())
 			adapter = NewAdapter(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
 
 			adapter.context = toolkit.GetMockedContext(ctx, []toolkit.MockData{
@@ -1024,7 +1024,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 					Name:      hasSnapshot.Name,
 					Namespace: "default",
 				}, hasSnapshot)
-				return err == nil && gitops.IsSnapshotMarkedAsAutoReleased(hasSnapshot)
+				return err == nil && IsSnapshotMarkedAsAutoReleased(hasSnapshot)
 			}, time.Second*10).Should(BeTrue())
 
 			// Check if the adapter function detects that it already released the snapshot
@@ -1044,14 +1044,14 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 
 			// Set the snapshot up for failure by setting its status as failed and invalid
 			// as well as marking it as PaC pull request event type
-			err := gitops.MarkSnapshotAsFailed(ctx, k8sClient, hasSnapshot, "test failed")
+			err := MarkSnapshotAsFailed(ctx, k8sClient, hasSnapshot, "test failed")
 			Expect(err).ShouldNot(HaveOccurred())
-			gitops.SetSnapshotIntegrationStatusAsInvalid(hasSnapshot, "snapshot invalid")
+			SetSnapshotIntegrationStatusAsInvalid(hasSnapshot, "snapshot invalid")
 			hasSnapshot.Labels[gitops.PipelineAsCodeEventTypeLabel] = gitops.PipelineAsCodePullRequestType
 			hasSnapshot.Labels[gitops.PipelineAsCodePullRequestAnnotation] = "1"
 			hasSnapshot.Labels[gitops.AutoReleaseLabel] = "false"
-			Expect(gitops.HaveAppStudioTestsSucceeded(hasSnapshot)).To(BeFalse())
-			Expect(gitops.IsSnapshotValid(hasSnapshot)).To(BeFalse())
+			Expect(HaveAppStudioTestsSucceeded(hasSnapshot)).To(BeFalse())
+			Expect(IsSnapshotValid(hasSnapshot)).To(BeFalse())
 
 			adapter = NewAdapter(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
 			Eventually(func() bool {
@@ -1160,7 +1160,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 						Name:      hasOverRideSnapshot.Name,
 						Namespace: "default",
 					}, hasOverRideSnapshot)
-					return err == nil && gitops.IsSnapshotMarkedAsAddedToGlobalCandidateList(hasOverRideSnapshot)
+					return err == nil && IsSnapshotMarkedAsAddedToGlobalCandidateList(hasOverRideSnapshot)
 				}, time.Second*10).Should(BeTrue())
 
 				// Check if the adapter function detects that it already promoted the snapshot component
@@ -1225,7 +1225,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 				log := helpers.IntegrationLogger{Logger: buflogr.NewWithBuffer(&buf)}
 				adapter.logger = log
 				adapter.snapshot = hasSnapshot
-				Expect(gitops.IsSnapshotMarkedAsAddedToGlobalCandidateList(hasSnapshot)).To(BeFalse())
+				Expect(IsSnapshotMarkedAsAddedToGlobalCandidateList(hasSnapshot)).To(BeFalse())
 				result, err := adapter.EnsureGlobalCandidateImageUpdated()
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(result.CancelRequest).To(BeFalse())
@@ -1235,7 +1235,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 						Name:      hasSnapshot.Name,
 						Namespace: "default",
 					}, hasSnapshot)
-					return err == nil && gitops.IsSnapshotMarkedAsAddedToGlobalCandidateList(hasSnapshot)
+					return err == nil && IsSnapshotMarkedAsAddedToGlobalCandidateList(hasSnapshot)
 				}, time.Second*10).Should(BeTrue())
 
 				// Check if the adapter function detects that it already promoted the snapshot component
@@ -1365,7 +1365,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 
 			It("pullrequest source repo reference and URL should be used for pipeline resourcekind", func() {
 				hasSnapshotPR.Annotations[gitops.PipelineAsCodeGitSourceURLAnnotation] = sourceRepoUrl
-				hasSnapshotPR.Annotations[gitops.PipelineAsCodeSHAAnnotation] = sourceRepoRef
+				hasSnapshotPR.Annotations[PipelineAsCodeSHAAnnotation] = sourceRepoRef
 				hasSnapshotPR.Annotations[gitops.PipelineAsCodeRepoURLAnnotation] = targetRepoUrl
 				hasSnapshotPR.Annotations[gitops.PipelineAsCodeTargetBranchAnnotation] = "main"
 				integrationTestScenarioWithTrailingSlash := integrationTestScenario.DeepCopy()
@@ -1480,9 +1480,9 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 		})
 
 		It("Skip integration test for passed Snapshot", func() {
-			err := gitops.MarkSnapshotAsPassed(ctx, k8sClient, hasSnapshot, "test pass")
+			err := MarkSnapshotAsPassed(ctx, k8sClient, hasSnapshot, "test pass")
 			Expect(err).To(Succeed())
-			Expect(gitops.HaveAppStudioTestsSucceeded(hasSnapshot)).To(BeTrue())
+			Expect(HaveAppStudioTestsSucceeded(hasSnapshot)).To(BeTrue())
 			var buf bytes.Buffer
 			log := helpers.IntegrationLogger{Logger: buflogr.NewWithBuffer(&buf)}
 			adapter = NewAdapter(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
@@ -1642,9 +1642,9 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 		log := helpers.IntegrationLogger{Logger: buflogr.NewWithBuffer(&buf)}
 
 		BeforeAll(func() {
-			err := gitops.MarkSnapshotAsPassed(ctx, k8sClient, hasSnapshot, "test passed")
+			err := MarkSnapshotAsPassed(ctx, k8sClient, hasSnapshot, "test passed")
 			Expect(err).To(Succeed())
-			Expect(gitops.HaveAppStudioTestsSucceeded(hasSnapshot)).To(BeTrue())
+			Expect(HaveAppStudioTestsSucceeded(hasSnapshot)).To(BeTrue())
 		})
 
 		It("Cancel request when GetAutoReleasePlansForApplication returns an error", func() {
@@ -1695,9 +1695,9 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 		var buf bytes.Buffer
 
 		BeforeAll(func() {
-			err := gitops.MarkSnapshotAsPassed(ctx, k8sClient, hasSnapshot, "test passed")
+			err := MarkSnapshotAsPassed(ctx, k8sClient, hasSnapshot, "test passed")
 			Expect(err).To(Succeed())
-			Expect(gitops.HaveAppStudioTestsSucceeded(hasSnapshot)).To(BeTrue())
+			Expect(HaveAppStudioTestsSucceeded(hasSnapshot)).To(BeTrue())
 		})
 
 		It("ensures that the AutoRelease condition of Snapshot mentions the absence of ReleasePlan", func() {
@@ -1729,7 +1729,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(hasSnapshot.Status.Conditions).NotTo(BeNil())
-			Expect(gitops.IsSnapshotStatusConditionSet(hasSnapshot, gitops.SnapshotAutoReleasedCondition,
+			Expect(IsSnapshotStatusConditionSet(hasSnapshot, gitops.SnapshotAutoReleasedCondition,
 				metav1.ConditionTrue, gitops.SnapshotAutoReleasedCondition)).To(BeTrue())
 
 			// Verify that the message field of "AutoRelease" condition mentions the absence of ReleasePlans
@@ -1745,10 +1745,10 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 			hasOldSnapshot.Labels[gitops.SnapshotTypeLabel] = gitops.SnapshotComponentType
 			Expect(k8sClient.Create(ctx, hasOldSnapshot)).Should(Succeed())
 
-			err := gitops.MarkSnapshotAsPassed(ctx, k8sClient, hasOldSnapshot, "test passed")
+			err := MarkSnapshotAsPassed(ctx, k8sClient, hasOldSnapshot, "test passed")
 			Expect(err).To(Succeed())
-			Expect(gitops.HaveAppStudioTestsSucceeded(hasOldSnapshot)).To(BeTrue())
-			err = gitops.MarkSnapshotIntegrationStatusAsFinished(ctx, k8sClient, hasOldSnapshot, "Snapshot integration status condition is finished since all testing pipelines completed")
+			Expect(HaveAppStudioTestsSucceeded(hasOldSnapshot)).To(BeTrue())
+			err = MarkSnapshotIntegrationStatusAsFinished(ctx, k8sClient, hasOldSnapshot, "Snapshot integration status condition is finished since all testing pipelines completed")
 			Expect(err).To(Succeed())
 		})
 
@@ -1764,8 +1764,8 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 				if err != nil {
 					return false
 				}
-				return gitops.HaveAppStudioTestsFinished(hasOldSnapshot) &&
-					gitops.HaveAppStudioTestsSucceeded(hasOldSnapshot)
+				return HaveAppStudioTestsFinished(hasOldSnapshot) &&
+					HaveAppStudioTestsSucceeded(hasOldSnapshot)
 			}, time.Second*10).Should(BeTrue())
 
 			//Set up mocked context
@@ -1806,7 +1806,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 				if err != nil {
 					return false
 				}
-				return gitops.IsSnapshotMarkedAsAutoReleased(hasOldSnapshot)
+				return IsSnapshotMarkedAsAutoReleased(hasOldSnapshot)
 			}, time.Second*10).Should(BeTrue())
 
 			// Verify the message contains "Released in newer Snapshot"
@@ -1831,8 +1831,8 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 				if err != nil {
 					return false
 				}
-				return gitops.HaveAppStudioTestsFinished(hasOldSnapshot) &&
-					gitops.HaveAppStudioTestsSucceeded(hasOldSnapshot)
+				return HaveAppStudioTestsFinished(hasOldSnapshot) &&
+					HaveAppStudioTestsSucceeded(hasOldSnapshot)
 			}, time.Second*10).Should(BeTrue())
 
 			//Set up mocked context
@@ -1873,7 +1873,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 				if err != nil {
 					return false
 				}
-				return gitops.IsSnapshotMarkedAsAutoReleased(hasOldSnapshot)
+				return IsSnapshotMarkedAsAutoReleased(hasOldSnapshot)
 			}, time.Second*10).Should(BeTrue())
 
 			// Verify the message contains "Released in newer Snapshot"
@@ -1923,7 +1923,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 			})
 
 			It("creates integration test in static environemnt", func() {
-				statuses, err := gitops.NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
+				statuses, err := NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
 				Expect(err).To(Succeed())
 				_, ok := statuses.GetScenarioStatus(integrationTestScenario.Name)
 				Expect(ok).To(BeFalse()) // no scenario test yet
@@ -1932,7 +1932,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 				Expect(err).To(Succeed())
 				Expect(result.CancelRequest).To(BeFalse())
 
-				statuses, err = gitops.NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
+				statuses, err = NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
 				Expect(err).To(Succeed())
 				detail, ok := statuses.GetScenarioStatus(integrationTestScenario.Name)
 				Expect(ok).To(BeTrue()) // test restarted has a status now
@@ -1963,7 +1963,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 				Expect(err).To(Succeed())
 				statuses.UpdateTestStatusIfChanged(integrationTestScenario.Name, intgteststat.IntegrationTestStatusInProgress, fakeDetails)
 				Expect(statuses.UpdateTestPipelineRunName(integrationTestScenario.Name, fakePLRName)).To(Succeed())
-				Expect(gitops.WriteIntegrationTestStatusesIntoSnapshot(ctx, hasSnapshot, statuses, k8sClient)).Should(Succeed())
+				Expect(WriteIntegrationTestStatusesIntoSnapshot(ctx, hasSnapshot, statuses, k8sClient)).Should(Succeed())
 
 				// add rerun label
 				// we cannot update it into k8s DB via patch, it would trigger reconciliation in background
@@ -2002,7 +2002,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 				Expect(result.CancelRequest).To(BeFalse())
 
 				// make sure that test details hasn't changed
-				statuses, err := gitops.NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
+				statuses, err := NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
 				Expect(err).To(Succeed())
 				detail, ok := statuses.GetScenarioStatus(integrationTestScenario.Name)
 				Expect(ok).To(BeTrue())
@@ -2029,16 +2029,16 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 			)
 
 			BeforeEach(func() {
-				err := gitops.MarkSnapshotAsPassed(ctx, k8sClient, hasSnapshot, "test passed")
+				err := MarkSnapshotAsPassed(ctx, k8sClient, hasSnapshot, "test passed")
 				Expect(err).To(Succeed())
-				Expect(gitops.HaveAppStudioTestsSucceeded(hasSnapshot)).To(BeTrue())
+				Expect(HaveAppStudioTestsSucceeded(hasSnapshot)).To(BeTrue())
 
 				// mock that test for scenario is already in progress by setting it in annotation
 				statuses, err := intgteststat.NewSnapshotIntegrationTestStatuses("")
 				Expect(err).To(Succeed())
 				statuses.UpdateTestStatusIfChanged(integrationTestScenario.Name, intgteststat.IntegrationTestStatusInProgress, fakeDetails)
 				Expect(statuses.UpdateTestPipelineRunName(integrationTestScenario.Name, fakePLRName)).To(Succeed())
-				Expect(gitops.WriteIntegrationTestStatusesIntoSnapshot(ctx, hasSnapshot, statuses, k8sClient)).Should(Succeed())
+				Expect(WriteIntegrationTestStatusesIntoSnapshot(ctx, hasSnapshot, statuses, k8sClient)).Should(Succeed())
 
 				// add rerun label
 				// we cannot update it into k8s DB via patch, it would trigger reconciliation in background
@@ -2072,7 +2072,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 			})
 
 			It("creates Integration PLR for the new ITS and skips for the one that's already InProgress", func() {
-				statuses, err := gitops.NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
+				statuses, err := NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
 				Expect(err).To(Succeed())
 				_, ok := statuses.GetScenarioStatus(integrationTestScenario1.Name)
 				Expect(ok).To(BeFalse()) // no entry for 'integrationTestScenario1' yet, because it wasn't run before
@@ -2083,7 +2083,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 
 				Expect(buf.String()).Should(ContainSubstring(fmt.Sprintf("Skipping re-run for IntegrationTestScenario since it's in 'InProgress' or 'Pending' state Scenario %s", integrationTestScenario.Name)))
 
-				statuses, err = gitops.NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
+				statuses, err = NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
 				Expect(err).To(Succeed())
 				detail, ok := statuses.GetScenarioStatus(integrationTestScenario1.Name)
 				Expect(ok).To(BeTrue()) // 'integrationTestScenario1' has a status now
@@ -2097,7 +2097,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 
 				// We reset Snapshot's status since we created a new Intg PLR for the ITS
 				Expect(hasSnapshot.Status.Conditions).NotTo(BeNil())
-				Expect(gitops.IsSnapshotStatusConditionSet(hasSnapshot, gitops.AppStudioTestSucceededCondition,
+				Expect(IsSnapshotStatusConditionSet(hasSnapshot, gitops.AppStudioTestSucceededCondition,
 					metav1.ConditionUnknown, "InProgress")).To(BeTrue())
 
 				// Verify that the message field of "AppStudioIntegrationStatusCondition" condition mentions the re-run initiation
@@ -2117,9 +2117,9 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 			)
 
 			BeforeEach(func() {
-				err := gitops.MarkSnapshotAsPassed(ctx, k8sClient, hasSnapshot, "test passed")
+				err := MarkSnapshotAsPassed(ctx, k8sClient, hasSnapshot, "test passed")
 				Expect(err).To(Succeed())
-				Expect(gitops.HaveAppStudioTestsSucceeded(hasSnapshot)).To(BeTrue())
+				Expect(HaveAppStudioTestsSucceeded(hasSnapshot)).To(BeTrue())
 
 				// Setting the context of 'integrationTestScenario1' to NOT match the current Component
 				integrationTestScenario1.Spec.Contexts = append(integrationTestScenario1.Spec.Contexts, v1beta2.TestContext{Name: "component_my-comp", Description: "Single component testing for 'my-comp' specifically"})
@@ -2130,7 +2130,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 				Expect(err).To(Succeed())
 				statuses.UpdateTestStatusIfChanged(integrationTestScenario.Name, intgteststat.IntegrationTestStatusInProgress, fakeDetails)
 				Expect(statuses.UpdateTestPipelineRunName(integrationTestScenario.Name, fakePLRName)).To(Succeed())
-				Expect(gitops.WriteIntegrationTestStatusesIntoSnapshot(ctx, hasSnapshot, statuses, k8sClient)).Should(Succeed())
+				Expect(WriteIntegrationTestStatusesIntoSnapshot(ctx, hasSnapshot, statuses, k8sClient)).Should(Succeed())
 
 				// add rerun label
 				// we cannot update it into k8s DB via patch, it would trigger reconciliation in background
@@ -2164,7 +2164,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 			})
 
 			It("does not create Integration PLR for the new ITS since its context doesn't match with the Snapshot", func() {
-				statuses, err := gitops.NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
+				statuses, err := NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
 				Expect(err).To(Succeed())
 				_, ok := statuses.GetScenarioStatus(integrationTestScenario1.Name)
 				Expect(ok).To(BeFalse()) // no entry for 'integrationTestScenario1' yet, because it wasn't run before
@@ -2176,7 +2176,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 				Expect(buf.String()).Should(ContainSubstring(fmt.Sprintf("Skipping re-run for IntegrationTestScenario since it's in 'InProgress' or 'Pending' state Scenario %s", integrationTestScenario.Name)))
 				Expect(buf.String()).Should(ContainSubstring("1 out of 1 requested IntegrationTestScenario(s) are either in 'InProgress' or 'Pending' state, skipping their re-runs Label all"))
 
-				statuses, err = gitops.NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
+				statuses, err = NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
 				Expect(err).To(Succeed())
 				_, ok = statuses.GetScenarioStatus(integrationTestScenario1.Name)
 				Expect(ok).To(BeFalse()) // 'integrationTestScenario1' does NOT has a status because it's context doesn't match with the 'hasSnapshot'
@@ -2188,7 +2188,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 
 				// Snapshot status is True because no new Integration PLRS were created
 				Expect(hasSnapshot.Status.Conditions).NotTo(BeNil())
-				Expect(gitops.IsSnapshotStatusConditionSet(hasSnapshot, gitops.AppStudioTestSucceededCondition,
+				Expect(IsSnapshotStatusConditionSet(hasSnapshot, gitops.AppStudioTestSucceededCondition,
 					metav1.ConditionTrue, "Passed")).To(BeTrue()) // Because we didn't reset Snapshot's status since 1 ITS has mismatching context, other one is "InProgress"
 			})
 		})
@@ -2199,9 +2199,9 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 			)
 
 			BeforeEach(func() {
-				err := gitops.MarkSnapshotAsPassed(ctx, k8sClient, hasSnapshot, "test passed")
+				err := MarkSnapshotAsPassed(ctx, k8sClient, hasSnapshot, "test passed")
 				Expect(err).To(Succeed())
-				Expect(gitops.HaveAppStudioTestsSucceeded(hasSnapshot)).To(BeTrue())
+				Expect(HaveAppStudioTestsSucceeded(hasSnapshot)).To(BeTrue())
 
 				// Setting the context of 'integrationTestScenario1' to NOT match the current Component
 				integrationTestScenario1.Spec.Contexts = append(integrationTestScenario1.Spec.Contexts, v1beta2.TestContext{Name: "component_my-comp", Description: "Single component testing for 'my-comp' specifically"})
@@ -2235,7 +2235,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 			})
 
 			It("does creates Integration PLR for the new ITS even though its context doesn't match with the Snapshot", func() {
-				statuses, err := gitops.NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
+				statuses, err := NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
 				Expect(err).To(Succeed())
 				_, ok := statuses.GetScenarioStatus(integrationTestScenario1.Name)
 				Expect(ok).To(BeFalse()) // no entry for 'integrationTestScenario1' yet, because it wasn't run before
@@ -2244,7 +2244,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 				Expect(err).To(Succeed())
 				Expect(result.CancelRequest).To(BeFalse())
 
-				statuses, err = gitops.NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
+				statuses, err = NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
 				Expect(err).To(Succeed())
 				detail, ok := statuses.GetScenarioStatus(integrationTestScenario1.Name)
 				// 'integrationTestScenario1' does have a status because the run was requested specifically with the ITS name.
@@ -2260,7 +2260,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 
 				// We reset Snapshot's status since we created a new Intg PLR for the ITS
 				Expect(hasSnapshot.Status.Conditions).NotTo(BeNil())
-				Expect(gitops.IsSnapshotStatusConditionSet(hasSnapshot, gitops.AppStudioTestSucceededCondition,
+				Expect(IsSnapshotStatusConditionSet(hasSnapshot, gitops.AppStudioTestSucceededCondition,
 					metav1.ConditionUnknown, "InProgress")).To(BeTrue())
 
 				// Verify that the message field of "AppStudioIntegrationStatusCondition" condition mentions the re-run initiation
@@ -2280,16 +2280,16 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 			)
 
 			BeforeEach(func() {
-				err := gitops.MarkSnapshotAsPassed(ctx, k8sClient, hasSnapshot, "test passed")
+				err := MarkSnapshotAsPassed(ctx, k8sClient, hasSnapshot, "test passed")
 				Expect(err).To(Succeed())
-				Expect(gitops.HaveAppStudioTestsSucceeded(hasSnapshot)).To(BeTrue())
+				Expect(HaveAppStudioTestsSucceeded(hasSnapshot)).To(BeTrue())
 
 				// mock that test for scenario is already in progress by setting it in annotation
 				statuses, err := intgteststat.NewSnapshotIntegrationTestStatuses("")
 				Expect(err).To(Succeed())
 				statuses.UpdateTestStatusIfChanged(integrationTestScenario.Name, intgteststat.IntegrationTestStatusTestPassed, fakeDetails)
 				Expect(statuses.UpdateTestPipelineRunName(integrationTestScenario.Name, fakePLRName)).To(Succeed())
-				Expect(gitops.WriteIntegrationTestStatusesIntoSnapshot(ctx, hasSnapshot, statuses, k8sClient)).Should(Succeed())
+				Expect(WriteIntegrationTestStatusesIntoSnapshot(ctx, hasSnapshot, statuses, k8sClient)).Should(Succeed())
 
 				// add rerun label
 				// we cannot update it into k8s DB via patch, it would trigger reconciliation in background
@@ -2319,7 +2319,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 			})
 
 			It("does create a new Integration PLR for the ITS which was already executed before", func() {
-				statuses, err := gitops.NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
+				statuses, err := NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
 				Expect(err).To(Succeed())
 				detail, ok := statuses.GetScenarioStatus(integrationTestScenario.Name)
 				Expect(ok).To(BeTrue()) // Entry exists for 'integrationTestScenario' because it was run before
@@ -2332,7 +2332,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 
 				Expect(buf.String()).Should(ContainSubstring(fmt.Sprintf("Creating new pipelinerun for integrationTestscenario integrationTestScenario.Name %s", integrationTestScenario.Name)))
 
-				statuses, err = gitops.NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
+				statuses, err = NewSnapshotIntegrationTestStatusesFromSnapshot(hasSnapshot)
 				Expect(err).To(Succeed())
 				detail, ok = statuses.GetScenarioStatus(integrationTestScenario.Name)
 				Expect(ok).To(BeTrue())
@@ -2347,7 +2347,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 
 				// We reset Snapshot's status since we created a new Intg PLR for the ITS
 				Expect(hasSnapshot.Status.Conditions).NotTo(BeNil())
-				Expect(gitops.IsSnapshotStatusConditionSet(hasSnapshot, gitops.AppStudioTestSucceededCondition,
+				Expect(IsSnapshotStatusConditionSet(hasSnapshot, gitops.AppStudioTestSucceededCondition,
 					metav1.ConditionUnknown, "InProgress")).To(BeTrue())
 			})
 		})
@@ -2358,7 +2358,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 
 		It("ensures override snapshot with invalid snapshotComponent is marked as invalid", func() {
 			log := helpers.IntegrationLogger{Logger: buflogr.NewWithBuffer(&buf)}
-			Expect(gitops.IsSnapshotValid(hasInvalidOverrideSnapshot)).To(BeTrue())
+			Expect(IsSnapshotValid(hasInvalidOverrideSnapshot)).To(BeTrue())
 			Expect(controllerutil.HasControllerReference(hasInvalidOverrideSnapshot)).To(BeFalse())
 			adapter = NewAdapter(ctx, hasInvalidOverrideSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
 			adapter.context = toolkit.GetMockedContext(ctx, []toolkit.MockData{

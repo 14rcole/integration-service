@@ -66,7 +66,7 @@ type ApplicationGitRepository struct {
 	Branch string `json:"branch,omitempty"`
 
 	// Context corresponds to the context within the repository that should be used
-	// Example: folderA/folderB/gitops.
+	// Example: folderA/folderB/
 	// Optional.
 	// +optional
 	Context string `json:"context,omitempty"`

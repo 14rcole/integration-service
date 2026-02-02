@@ -144,7 +144,7 @@ var _ = Describe("GitLabReporter", func() {
 			server = httptest.NewServer(apiHandler)
 
 			// mock URL with httptest server URL
-			hasSnapshot.Annotations[gitops.PipelineAsCodeRepoURLAnnotation] = server.URL
+			hasSnapshot.Annotations[PipelineAsCodeRepoURLAnnotation] = server.URL
 
 			repo = pacv1alpha1.Repository{
 				Spec: pacv1alpha1.RepositorySpec{
@@ -197,10 +197,10 @@ var _ = Describe("GitLabReporter", func() {
 			Expect(err).ToNot(Succeed())
 			Expect(statusCode).To(Equal(0))
 		},
-			Entry("Missing repo_url", gitops.PipelineAsCodeRepoURLAnnotation, false),
-			Entry("Missing SHA", gitops.PipelineAsCodeSHALabel, true),
-			Entry("Missing target project ID", gitops.PipelineAsCodeTargetProjectIDAnnotation, false),
-			Entry("Missing source project ID", gitops.PipelineAsCodeSourceProjectIDAnnotation, false),
+			Entry("Missing repo_url", PipelineAsCodeRepoURLAnnotation, false),
+			Entry("Missing SHA", PipelineAsCodeSHALabel, true),
+			Entry("Missing target project ID", PipelineAsCodeTargetProjectIDAnnotation, false),
+			Entry("Missing source project ID", PipelineAsCodeSourceProjectIDAnnotation, false),
 		)
 
 		It("creates a commit status for snapshot with correct textual data", func() {
@@ -226,8 +226,8 @@ var _ = Describe("GitLabReporter", func() {
 
 			pushSnapshot := hasSnapshot.DeepCopy()
 			// Removing the pull request annotation and adding the push label
-			delete(pushSnapshot.Annotations, gitops.PipelineAsCodePullRequestAnnotation)
-			pushSnapshot.Annotations[gitops.PipelineAsCodeEventTypeLabel] = "Push"
+			delete(pushSnapshot.Annotations, PipelineAsCodePullRequestAnnotation)
+			pushSnapshot.Annotations[PipelineAsCodeEventTypeLabel] = "Push"
 
 			pushEventReporter := status.NewGitLabReporter(log, mockK8sClient)
 
