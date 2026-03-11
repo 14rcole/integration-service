@@ -128,6 +128,11 @@ func (a *Adapter) EnsureSnapshotTestStatusReportedToGitProvider() (controller.Op
 func (a *Adapter) EnsureSnapshotFinishedAllTests() (controller.OperationResult, error) {
 	// Get all required integrationTestScenarios for the Snapshot and then use the Snapshot status annotation
 	// to check if all Integration tests were finished for that Snapshot
+	var integrationTestScenarios *[]v1beta2.IntegrationTestScenario
+	var err error
+	if a.application != nil {
+		integrationTestScenarios, err := a.loader.GetRequiredIntegrationTestScenariosForSnapshot(a.context, a.client, a.application, a.snapshot)
+	}
 	integrationTestScenarios, err := a.loader.GetRequiredIntegrationTestScenariosForSnapshot(a.context, a.client, a.application, a.snapshot)
 	if err != nil {
 		return controller.RequeueWithError(err)

@@ -891,12 +891,12 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 		var buf bytes.Buffer
 
 		It("can create a new Adapter instance", func() {
-			Expect(reflect.TypeOf(NewAdapter(ctx, hasSnapshot, hasApp, logger, loader.NewMockLoader(), k8sClient))).To(Equal(reflect.TypeOf(&Adapter{})))
+			Expect(reflect.TypeOf(NewAdapterWithApplication(ctx, hasSnapshot, hasApp, logger, loader.NewMockLoader(), k8sClient))).To(Equal(reflect.TypeOf(&Adapter{})))
 		})
 
 		It("ensures the integrationTestPipelines are created", func() {
 			log := helpers.IntegrationLogger{Logger: buflogr.NewWithBuffer(&buf)}
-			adapter = NewAdapter(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
+			adapter = NewAdapterWithApplication(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
 			adapter.context = toolkit.GetMockedContext(ctx, []toolkit.MockData{
 				{
 					ContextKey: loader.ApplicationContextKey,
@@ -929,7 +929,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 			Expect(result.RequeueRequest).To(BeFalse())
 			Expect(err).ToNot(HaveOccurred())
 
-			requiredIntegrationTestScenarios, err := adapter.loader.GetRequiredIntegrationTestScenariosForSnapshot(adapter.context, k8sClient, hasApp, hasSnapshot)
+			requiredIntegrationTestScenarios, err := adapter.loader.GetRequiredIntegrationTestScenariosForSnapshotApplication(adapter.context, k8sClient, hasApp, hasSnapshot)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(requiredIntegrationTestScenarios).NotTo(BeNil())
 			expectedLogEntry := "Creating new pipelinerun for integrationTestscenario integrationTestScenario.Name example-pass"
@@ -989,7 +989,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 			Expect(err).To(Succeed())
 			Expect(gitops.HaveAppStudioTestsFinished(hasSnapshot)).To(BeTrue())
 			Expect(gitops.HaveAppStudioTestsSucceeded(hasSnapshot)).To(BeTrue())
-			adapter = NewAdapter(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
+			adapter = NewAdapterWithApplication(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
 
 			adapter.context = toolkit.GetMockedContext(ctx, []toolkit.MockData{
 				{
@@ -1053,7 +1053,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 			Expect(gitops.HaveAppStudioTestsSucceeded(hasSnapshot)).To(BeFalse())
 			Expect(gitops.IsSnapshotValid(hasSnapshot)).To(BeFalse())
 
-			adapter = NewAdapter(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
+			adapter = NewAdapterWithApplication(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
 			Eventually(func() bool {
 				result, err := adapter.EnsureAllReleasesExist()
 				return !result.CancelRequest && err == nil
@@ -1072,7 +1072,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 		})
 
 		It("ensures build, PaC, test, and custom labels/annotations are propagated from snapshot to Integration test PLR", func() {
-			pipelineRun, err := adapter.createIntegrationPipelineRun(hasApp, integrationTestScenario, hasSnapshot)
+			pipelineRun, err := adapter.createIntegrationPipelineRun(integrationTestScenario)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(pipelineRun).ToNot(BeNil())
 
@@ -1109,7 +1109,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 		})
 
 		It("ensures other labels/annotations are NOT propagated from snapshot to Integration test PLR", func() {
-			pipelineRun, err := adapter.createIntegrationPipelineRun(hasApp, integrationTestScenario, hasSnapshot)
+			pipelineRun, err := adapter.createIntegrationPipelineRun(integrationTestScenario)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(pipelineRun).ToNot(BeNil())
 
@@ -1123,7 +1123,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 		It("ensures serviceAccount is generated correctly for the Integration test PLR", func() {
 			serviceAccountName := tektonconsts.DefaultIntegrationPipelineServiceAccount
 
-			pipelineRun, err := adapter.createIntegrationPipelineRun(hasApp, integrationTestScenario, hasSnapshot)
+			pipelineRun, err := adapter.createIntegrationPipelineRun(integrationTestScenario)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(pipelineRun).ToNot(BeNil())
 
@@ -1136,7 +1136,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 				hasComp.Status.LastPromotedImage = ""
 				var buf bytes.Buffer
 				log := helpers.IntegrationLogger{Logger: buflogr.NewWithBuffer(&buf)}
-				adapter = NewAdapter(ctx, hasOverRideSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
+				adapter = NewAdapterWithApplication(ctx, hasOverRideSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
 				adapter.context = toolkit.GetMockedContext(ctx, []toolkit.MockData{
 					{
 						ContextKey: loader.ApplicationContextKey,
@@ -1306,7 +1306,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 					},
 				})
 
-				pipelineRun, err := adapter.createIntegrationPipelineRun(hasApp, integrationTestScenarioWithTrailingSlash, hasSnapshotPR)
+				pipelineRun, err := adapter.createIntegrationPipelineRun(integrationTestScenarioWithTrailingSlash)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(pipelineRun).ToNot(BeNil())
 				Expect(buf.String()).Should(ContainSubstring("using the integration test pipeline/pipelinerun from the pr of snapshot integrationTestScneario.Name example-pass snapshot.Name snapshotpr-sample resourceKind pipelinerun"))
@@ -1361,7 +1361,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 				log := helpers.IntegrationLogger{Logger: buflogr.NewWithBuffer(&buf)}
 				adapter.logger = log
 				adapter.snapshot = hasSnapshotPR
-				pipelineRun, err := adapter.createIntegrationPipelineRun(hasApp, integrationTestScenarioWithTrailingSlash, hasSnapshotPR)
+				pipelineRun, err := adapter.createIntegrationPipelineRun(integrationTestScenarioWithTrailingSlash)
 				Expect(buf.String()).Should(ContainSubstring("using the integration test pipeline/pipelinerun from the pr of snapshot integrationTestScneario.Name example-pass snapshot.Name snapshotpr-sample resourceKind pipeline"))
 				Expect(err).ToNot(HaveOccurred())
 				Expect(pipelineRun).ToNot(BeNil())
@@ -1389,7 +1389,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 		It("Ensure error is logged when experiencing error when fetching ITS for application", func() {
 			var buf bytes.Buffer
 			log := helpers.IntegrationLogger{Logger: buflogr.NewWithBuffer(&buf)}
-			adapter = NewAdapter(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
+			adapter = NewAdapterWithApplication(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
 			adapter.context = toolkit.GetMockedContext(ctx, []toolkit.MockData{
 				{
 					ContextKey: loader.ApplicationContextKey,
@@ -1423,7 +1423,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 		It("Mark snapshot as pass when required ITS is not found", func() {
 			var buf bytes.Buffer
 			log := helpers.IntegrationLogger{Logger: buflogr.NewWithBuffer(&buf)}
-			adapter = NewAdapter(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
+			adapter = NewAdapterWithApplication(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
 			adapter.context = toolkit.GetMockedContext(ctx, []toolkit.MockData{
 				{
 					ContextKey: loader.ApplicationContextKey,
@@ -1455,7 +1455,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 			Expect(gitops.HaveAppStudioTestsSucceeded(hasSnapshot)).To(BeTrue())
 			var buf bytes.Buffer
 			log := helpers.IntegrationLogger{Logger: buflogr.NewWithBuffer(&buf)}
-			adapter = NewAdapter(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
+			adapter = NewAdapterWithApplication(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
 			adapter.context = toolkit.GetMockedContext(ctx, []toolkit.MockData{
 				{
 					ContextKey: loader.ApplicationContextKey,
@@ -1569,7 +1569,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 			var buf bytes.Buffer
 
 			log := helpers.IntegrationLogger{Logger: buflogr.NewWithBuffer(&buf)}
-			adapter = NewAdapter(ctx, hasInvalidSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
+			adapter = NewAdapterWithApplication(ctx, hasInvalidSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
 
 			adapter.context = toolkit.GetMockedContext(ctx, []toolkit.MockData{
 				{
@@ -1618,7 +1618,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 		})
 
 		It("Cancel request when GetAutoReleasePlansForApplication returns an error", func() {
-			adapter = NewAdapter(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
+			adapter = NewAdapterWithApplication(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
 			// Mock the context with error for AutoReleasePlansContextKey
 			adapter.context = toolkit.GetMockedContext(ctx, []toolkit.MockData{
 				{
@@ -1635,7 +1635,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 		})
 
 		It("Returns RequeueWithError if the snapshot is less than three hours old", func() {
-			adapter = NewAdapter(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
+			adapter = NewAdapterWithApplication(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
 			testErr := fmt.Errorf("something went wrong with the release")
 
 			result, err := adapter.RequeueIfYoungerThanThreshold(testErr)
@@ -1651,7 +1651,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 			// and returns a time.Time.  Why?  Who knows.  We want the latter, so we add -3 hours here
 			hasSnapshot.CreationTimestamp = metav1.NewTime(time.Now().Add(-1 * SnapshotRetryTimeout))
 
-			adapter = NewAdapter(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
+			adapter = NewAdapterWithApplication(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
 			testErr := fmt.Errorf("something went wrong with the release")
 
 			result, err := adapter.RequeueIfYoungerThanThreshold(testErr)
@@ -1673,7 +1673,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 		It("ensures that the AutoRelease condition of Snapshot mentions the absence of ReleasePlan", func() {
 			log := helpers.IntegrationLogger{Logger: buflogr.NewWithBuffer(&buf)}
 
-			adapter = NewAdapter(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
+			adapter = NewAdapterWithApplication(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
 			adapter.context = toolkit.GetMockedContext(ctx, []toolkit.MockData{
 				{
 					ContextKey: loader.ApplicationContextKey,
@@ -1739,7 +1739,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 			}, time.Second*10).Should(BeTrue())
 
 			//Set up mocked context
-			adapter = NewAdapter(ctx, hasOldSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
+			adapter = NewAdapterWithApplication(ctx, hasOldSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
 			adapter.context = toolkit.GetMockedContext(ctx, []toolkit.MockData{
 				{
 					ContextKey: loader.ApplicationContextKey,
@@ -1804,7 +1804,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 			metav1.SetMetaDataAnnotation(&hasOldSnapshot.ObjectMeta, gitops.IgnoreSupersessionAnnotation, "true")
 
 			//Set up mocked context
-			adapter = NewAdapter(ctx, hasOldSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
+			adapter = NewAdapterWithApplication(ctx, hasOldSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
 			//Verify that the annotation exists
 			adapter.context = toolkit.GetMockedContext(ctx, []toolkit.MockData{
 				{
@@ -1877,7 +1877,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 			}, time.Second*10).Should(BeTrue())
 
 			//Set up mocked context
-			adapter = NewAdapter(ctx, hasOldSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
+			adapter = NewAdapterWithApplication(ctx, hasOldSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
 			adapter.context = toolkit.GetMockedContext(ctx, []toolkit.MockData{
 				{
 					ContextKey: loader.ApplicationContextKey,
@@ -1938,7 +1938,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 				hasSnapshot.Labels[gitops.SnapshotIntegrationTestRun] = integrationTestScenario.Name
 
 				log := helpers.IntegrationLogger{Logger: buflogr.NewWithBuffer(&buf)}
-				adapter = NewAdapter(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
+				adapter = NewAdapterWithApplication(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
 				adapter.context = toolkit.GetMockedContext(ctx, []toolkit.MockData{
 					{
 						ContextKey: loader.ApplicationContextKey,
@@ -2012,7 +2012,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 				hasSnapshot.Labels[gitops.SnapshotIntegrationTestRun] = integrationTestScenario.Name
 
 				log := helpers.IntegrationLogger{Logger: buflogr.NewWithBuffer(&buf)}
-				adapter = NewAdapter(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
+				adapter = NewAdapterWithApplication(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
 				adapter.context = toolkit.GetMockedContext(ctx, []toolkit.MockData{
 					{
 						ContextKey: loader.ApplicationContextKey,
@@ -2087,7 +2087,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 				hasSnapshot.Labels[gitops.SnapshotIntegrationTestRun] = "all"
 
 				log := helpers.IntegrationLogger{Logger: buflogr.NewWithBuffer(&buf)}
-				adapter = NewAdapter(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
+				adapter = NewAdapterWithApplication(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
 				adapter.context = toolkit.GetMockedContext(ctx, []toolkit.MockData{
 					{
 						ContextKey: loader.ApplicationContextKey,
@@ -2179,7 +2179,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 				hasSnapshot.Labels[gitops.SnapshotIntegrationTestRun] = "all"
 
 				log := helpers.IntegrationLogger{Logger: buflogr.NewWithBuffer(&buf)}
-				adapter = NewAdapter(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
+				adapter = NewAdapterWithApplication(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
 				adapter.context = toolkit.GetMockedContext(ctx, []toolkit.MockData{
 					{
 						ContextKey: loader.ApplicationContextKey,
@@ -2254,7 +2254,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 				hasSnapshot.Labels[gitops.SnapshotIntegrationTestRun] = integrationTestScenario1.Name
 
 				log := helpers.IntegrationLogger{Logger: buflogr.NewWithBuffer(&buf)}
-				adapter = NewAdapter(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
+				adapter = NewAdapterWithApplication(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
 				adapter.context = toolkit.GetMockedContext(ctx, []toolkit.MockData{
 					{
 						ContextKey: loader.ApplicationContextKey,
@@ -2338,7 +2338,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 				hasSnapshot.Labels[gitops.SnapshotIntegrationTestRun] = integrationTestScenario.Name
 
 				log := helpers.IntegrationLogger{Logger: buflogr.NewWithBuffer(&buf)}
-				adapter = NewAdapter(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
+				adapter = NewAdapterWithApplication(ctx, hasSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
 				adapter.context = toolkit.GetMockedContext(ctx, []toolkit.MockData{
 					{
 						ContextKey: loader.ApplicationContextKey,
@@ -2401,7 +2401,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 			log := helpers.IntegrationLogger{Logger: buflogr.NewWithBuffer(&buf)}
 			Expect(gitops.IsSnapshotValid(hasInvalidOverrideSnapshot)).To(BeTrue())
 			Expect(controllerutil.HasControllerReference(hasInvalidOverrideSnapshot)).To(BeFalse())
-			adapter = NewAdapter(ctx, hasInvalidOverrideSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
+			adapter = NewAdapterWithApplication(ctx, hasInvalidOverrideSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
 			adapter.context = toolkit.GetMockedContext(ctx, []toolkit.MockData{
 				{
 					ContextKey: loader.ApplicationContextKey,
@@ -2440,7 +2440,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 			var buf bytes.Buffer
 			log := helpers.IntegrationLogger{Logger: buflogr.NewWithBuffer(&buf)}
 			hasComSnapshot1.Labels[gitops.PipelineAsCodeEventTypeLabel] = gitops.PipelineAsCodePushType
-			adapter = NewAdapter(ctx, hasComSnapshot1, hasApp, log, loader.NewMockLoader(), k8sClient)
+			adapter = NewAdapterWithApplication(ctx, hasComSnapshot1, hasApp, log, loader.NewMockLoader(), k8sClient)
 			adapter.context = toolkit.GetMockedContext(ctx, []toolkit.MockData{
 				{
 					ContextKey: loader.ApplicationContextKey,
@@ -2463,7 +2463,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 			var buf bytes.Buffer
 			log := helpers.IntegrationLogger{Logger: buflogr.NewWithBuffer(&buf)}
 			hasComSnapshot1.Annotations[gitops.PRGroupCreationAnnotation] = "processed"
-			adapter = NewAdapter(ctx, hasComSnapshot1, hasApp, log, loader.NewMockLoader(), k8sClient)
+			adapter = NewAdapterWithApplication(ctx, hasComSnapshot1, hasApp, log, loader.NewMockLoader(), k8sClient)
 			adapter.context = toolkit.GetMockedContext(ctx, []toolkit.MockData{
 				{
 					ContextKey: loader.ApplicationContextKey,
@@ -2487,7 +2487,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 			log := helpers.IntegrationLogger{Logger: buflogr.NewWithBuffer(&buf)}
 			Expect(metadata.DeleteLabel(hasComSnapshot1, gitops.PRGroupHashLabel)).ShouldNot(HaveOccurred())
 			Expect(metadata.HasLabel(hasComSnapshot1, gitops.PRGroupHashLabel)).To(BeFalse())
-			adapter = NewAdapter(ctx, hasComSnapshot1, hasApp, log, loader.NewMockLoader(), k8sClient)
+			adapter = NewAdapterWithApplication(ctx, hasComSnapshot1, hasApp, log, loader.NewMockLoader(), k8sClient)
 			adapter.context = toolkit.GetMockedContext(ctx, []toolkit.MockData{
 				{
 					ContextKey: loader.ApplicationContextKey,
@@ -2526,7 +2526,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 
 			var buf bytes.Buffer
 			log := helpers.IntegrationLogger{Logger: buflogr.NewWithBuffer(&buf)}
-			adapter = NewAdapter(ctx, hasComSnapshot1, hasApp, log, loader.NewMockLoader(), k8sClient)
+			adapter = NewAdapterWithApplication(ctx, hasComSnapshot1, hasApp, log, loader.NewMockLoader(), k8sClient)
 			adapter.context = toolkit.GetMockedContext(ctx, []toolkit.MockData{
 				{
 					ContextKey: loader.ApplicationContextKey,
@@ -2569,7 +2569,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 
 			var buf bytes.Buffer
 			log := helpers.IntegrationLogger{Logger: buflogr.NewWithBuffer(&buf)}
-			adapter = NewAdapter(ctx, hasComSnapshot1, hasApp, log, loader.NewMockLoader(), k8sClient)
+			adapter = NewAdapterWithApplication(ctx, hasComSnapshot1, hasApp, log, loader.NewMockLoader(), k8sClient)
 			adapter.context = toolkit.GetMockedContext(ctx, []toolkit.MockData{
 				{
 					ContextKey: loader.ApplicationContextKey,
@@ -2612,7 +2612,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 
 			var buf bytes.Buffer
 			log := helpers.IntegrationLogger{Logger: buflogr.NewWithBuffer(&buf)}
-			adapter = NewAdapter(ctx, hasComSnapshot1, hasApp, log, loader.NewMockLoader(), k8sClient)
+			adapter = NewAdapterWithApplication(ctx, hasComSnapshot1, hasApp, log, loader.NewMockLoader(), k8sClient)
 			adapter.context = toolkit.GetMockedContext(ctx, []toolkit.MockData{
 				{
 					ContextKey: loader.ApplicationContextKey,
@@ -2638,7 +2638,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 		It("Stop processing when there is no annotationID in snapshot", func() {
 			var buf bytes.Buffer
 			log := helpers.IntegrationLogger{Logger: buflogr.NewWithBuffer(&buf)}
-			adapter = NewAdapter(ctx, hasComSnapshot1, hasApp, log, loader.NewMockLoader(), k8sClient)
+			adapter = NewAdapterWithApplication(ctx, hasComSnapshot1, hasApp, log, loader.NewMockLoader(), k8sClient)
 			adapter.context = toolkit.GetMockedContext(ctx, []toolkit.MockData{
 				{
 					ContextKey: loader.ApplicationContextKey,
@@ -2690,7 +2690,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 		It("Stop processing when there is only one component affected for pr group", func() {
 			var buf bytes.Buffer
 			log := helpers.IntegrationLogger{Logger: buflogr.NewWithBuffer(&buf)}
-			adapter = NewAdapter(ctx, hasComSnapshot1, hasApp, log, loader.NewMockLoader(), k8sClient)
+			adapter = NewAdapterWithApplication(ctx, hasComSnapshot1, hasApp, log, loader.NewMockLoader(), k8sClient)
 			adapter.context = toolkit.GetMockedContext(ctx, []toolkit.MockData{
 				{
 					ContextKey: loader.ApplicationContextKey,
@@ -2728,7 +2728,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 			// mockStatus.EXPECT().IsPRMRInSnapshotOpened(gomock.Any(), gomock.Any()).Return(true, nil)
 			mockStatus.EXPECT().IsPRMRInSnapshotOpened(gomock.Any(), gomock.Any()).AnyTimes()
 
-			adapter = NewAdapter(ctx, hasComSnapshot1, hasApp, log, loader.NewMockLoader(), k8sClient)
+			adapter = NewAdapterWithApplication(ctx, hasComSnapshot1, hasApp, log, loader.NewMockLoader(), k8sClient)
 
 			adapter.status = mockStatus
 			adapter.context = toolkit.GetMockedContext(ctx, []toolkit.MockData{
@@ -2813,7 +2813,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 			var buf bytes.Buffer
 			log := helpers.IntegrationLogger{Logger: buflogr.NewWithBuffer(&buf)}
 
-			adapter = NewAdapter(ctx, hasOldCompSnapshotPR, hasApp, log, loader.NewMockLoader(), k8sClient)
+			adapter = NewAdapterWithApplication(ctx, hasOldCompSnapshotPR, hasApp, log, loader.NewMockLoader(), k8sClient)
 			adapter.context = toolkit.GetMockedContext(ctx, []toolkit.MockData{
 				{
 					ContextKey: loader.ApplicationContextKey,
@@ -2894,7 +2894,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 			var buf bytes.Buffer
 			log := helpers.IntegrationLogger{Logger: buflogr.NewWithBuffer(&buf)}
 
-			adapter = NewAdapter(ctx, hasNewGroupSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
+			adapter = NewAdapterWithApplication(ctx, hasNewGroupSnapshot, hasApp, log, loader.NewMockLoader(), k8sClient)
 			adapter.context = toolkit.GetMockedContext(ctx, []toolkit.MockData{
 				{
 					ContextKey: loader.ApplicationContextKey,
@@ -3118,7 +3118,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 				},
 			})
 
-			pipelineRun, err := adapter.createIntegrationPipelineRun(hasApp, integrationTestScenarioPR, hasSnapshotPR)
+			pipelineRun, err := adapter.createIntegrationPipelineRun(integrationTestScenarioPR)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(pipelineRun).ToNot(BeNil())
 
@@ -3172,7 +3172,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 			adapter.logger = log
 			adapter.snapshot = hasSnapshotPush
 
-			pipelineRun, err := adapter.createIntegrationPipelineRun(hasApp, integrationTestScenarioPR, hasSnapshotPush)
+			pipelineRun, err := adapter.createIntegrationPipelineRun(integrationTestScenarioPR)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(pipelineRun).ToNot(BeNil())
 
@@ -3211,7 +3211,7 @@ var _ = Describe("Snapshot Adapter", Ordered, func() {
 			adapter.logger = log
 			adapter.snapshot = hasSnapshotPR
 
-			pipelineRun, err := adapter.createIntegrationPipelineRun(hasApp, integrationTestScenarioPipeline, hasSnapshotPR)
+			pipelineRun, err := adapter.createIntegrationPipelineRun(integrationTestScenarioPipeline)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(pipelineRun).ToNot(BeNil())
 

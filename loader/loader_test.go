@@ -42,6 +42,7 @@ var _ = Describe("Loader", Ordered, func() {
 	var (
 		loader                     ObjectLoader
 		hasSnapshot                *applicationapiv1alpha1.Snapshot
+		hasCGSnapshot              *applicationapiv1alpha1.Snapshot
 		hasGroupSnapshot           *applicationapiv1alpha1.Snapshot
 		hasApp                     *applicationapiv1alpha1.Application
 		hasComponentGroup1         *v1beta2.ComponentGroup
@@ -59,6 +60,7 @@ var _ = Describe("Loader", Ordered, func() {
 		SampleRepoLink         = "https://github.com/devfile-samples/devfile-sample-java-springboot-basic"
 		applicationName        = "application-sample"
 		snapshotName           = "snapshot-sample"
+		cgSnapshotName         = "componentgroup-snapshot-sample"
 		groupSnapshotName      = "group-snapshot-sample"
 		sample_image           = "quay.io/redhat-appstudio/sample-image"
 		sample_revision        = "random-value"
@@ -178,6 +180,42 @@ var _ = Describe("Loader", Ordered, func() {
 			},
 		}
 		Expect(k8sClient.Create(ctx, hasSnapshot)).Should(Succeed())
+
+		hasCGSnapshot = &applicationapiv1alpha1.Snapshot{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      cgSnapshotName,
+				Namespace: "default",
+				Labels: map[string]string{
+					gitops.SnapshotTypeLabel:                   "component",
+					gitops.SnapshotComponentLabel:              "component-sample",
+					gitops.BuildPipelineRunNameLabel:           "pipelinerun-sample",
+					gitops.PRGroupHashLabel:                    prGroupSha,
+					gitops.PipelineAsCodeEventTypeLabel:        "pull_request",
+					gitops.PipelineAsCodePullRequestAnnotation: "1",
+					gitops.ComponentGroupNameLabel:             hasComponentGroup1.Name,
+				},
+				Annotations: map[string]string{
+					gitops.PipelineAsCodeInstallationIDAnnotation: "123",
+				},
+			},
+			Spec: applicationapiv1alpha1.SnapshotSpec{
+				ComponentGroup: hasComponentGroup1.Name,
+				Components: []applicationapiv1alpha1.SnapshotComponent{
+					{
+						Name:           "component-sample",
+						ContainerImage: sample_image,
+						Source: applicationapiv1alpha1.ComponentSource{
+							ComponentSourceUnion: applicationapiv1alpha1.ComponentSourceUnion{
+								GitSource: &applicationapiv1alpha1.GitSource{
+									Revision: sample_revision,
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, hasCGSnapshot)).Should(Succeed())
 
 		hasGroupSnapshot = &applicationapiv1alpha1.Snapshot{
 			ObjectMeta: metav1.ObjectMeta{
@@ -566,8 +604,15 @@ var _ = Describe("Loader", Ordered, func() {
 		Expect(applicationComponents).NotTo(BeNil())
 	})
 
-	It("ensures we can get an Application from a Snapshot ", func() {
-		app, err := loader.GetApplicationFromSnapshot(ctx, k8sClient, hasSnapshot)
+	It("ensures we can get an Application from a Snapshot [APPLICATION]", func() {
+		app, err := loader.GetApplicationFromSnapshot(ctx, k8sClient, hasCGSnapshot)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(app).NotTo(BeNil())
+		Expect(app.ObjectMeta).To(Equal(hasComponentGroup1.ObjectMeta))
+	})
+
+	It("ensures we can get a ComponentGroup from a Snapshot", func() {
+		app, err := loader.GetComponentGroupFromSnapshot(ctx, k8sClient, hasCGSnapshot)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(app).NotTo(BeNil())
 		Expect(app.ObjectMeta).To(Equal(hasApp.ObjectMeta))
@@ -700,8 +745,16 @@ var _ = Describe("Loader", Ordered, func() {
 		Expect(*integrationTestScenarios).To(HaveLen(2))
 	})
 
-	It("can fetch required integrationTestScenario for application", func() {
-		integrationTestScenarios, err := loader.GetRequiredIntegrationTestScenariosForSnapshot(ctx, k8sClient, hasApp, hasSnapshot)
+	It("can fetch required integrationTestScenario for application [APPLICATION]", func() {
+		integrationTestScenarios, err := loader.GetRequiredIntegrationTestScenariosForSnapshotApplication(ctx, k8sClient, hasApp, hasSnapshot)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(integrationTestScenarios).NotTo(BeNil())
+		Expect(*integrationTestScenarios).To(HaveLen(1))
+		Expect((*integrationTestScenarios)[0].Name).To(Equal(integrationTestScenario.Name))
+	})
+
+	It("can fetch required integrationTestScenario for component group", func() {
+		integrationTestScenarios, err := loader.GetRequiredIntegrationTestScenariosForSnapshot(ctx, k8sClient, hasComponentGroup1, hasGCSnapshot)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(integrationTestScenarios).NotTo(BeNil())
 		Expect(*integrationTestScenarios).To(HaveLen(1))
@@ -722,8 +775,15 @@ var _ = Describe("Loader", Ordered, func() {
 		Expect(*snapshots).To(HaveLen(2))
 	})
 
-	It("ensures the ReleasePlan can be gotten for Application", func() {
+	It("ensures the ReleasePlan can be gotten for Application [APPLICATION]", func() {
 		gottenReleasePlanItems, err := loader.GetAutoReleasePlansForApplication(ctx, k8sClient, hasApp, hasSnapshot)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(gottenReleasePlanItems).NotTo(BeNil())
+
+	})
+
+	It("ensures the ReleasePlan can be gotten for ComponentGroup", func() {
+		gottenReleasePlanItems, err := loader.GetAutoReleasePlansForComponentGroup(ctx, k8sClient, hasComponentGroup1, hasSnapshot)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(gottenReleasePlanItems).NotTo(BeNil())
 
