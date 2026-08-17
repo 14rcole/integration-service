@@ -69,6 +69,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	// TODO: remove check when old application-specific code is removed
+	// placeholder comment
 	if component.Spec.Application == "" {
 		logger.Info("Component does not belong to an Application, skipping", "component.Name", component.Name)
 		return ctrl.Result{}, nil
@@ -114,6 +115,8 @@ func SetupController(manager ctrl.Manager, log *logr.Logger) error {
 
 // setupControllerWithManager sets up the controller with the Manager which monitors Components and filters
 // out status updates.
+// NOTE: we do not need to watch for changes to konflux-ci.dev Components here because
+// the Component Adapter is only used in the old model
 func setupControllerWithManager(manager ctrl.Manager, controller *Reconciler) error {
 	return ctrl.NewControllerManagedBy(manager).
 		For(&applicationapiv1alpha1.Component{}).

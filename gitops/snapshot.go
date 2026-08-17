@@ -1122,6 +1122,7 @@ func GetComponentSourceFromComponent(component *applicationapiv1alpha1.Component
 // still empty. When componentVersion is set, matching spec.source.versions[].context takes precedence
 // over spec.source.git.context; otherwise top-level git context is used. This aligns the built row with
 // GetComponentSourceFromComponent for sibling components.
+// TODO: Remove when we drop support for the old application model
 func EnrichBuiltComponentSourceGitContext(componentSource *applicationapiv1alpha1.ComponentSource, component *applicationapiv1alpha1.Component, componentVersion string) {
 	if componentSource == nil || componentSource.GitSource == nil || component == nil {
 		return
